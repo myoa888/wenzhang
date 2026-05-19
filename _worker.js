@@ -1,11 +1,18 @@
 /**
- * Cloudflare Pages Functions API
+ * Cloudflare Pages Workers API
  * 处理所有 /api/* 请求
  */
 
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  const path = url.pathname.replace(/^\/api/, '') || '/';
+  const pathname = url.pathname;
+  
+  // 只处理 /api/* 请求，其他返回 404
+  if (!pathname.startsWith('/api')) {
+    return new Response('Not Found', { status: 404 });
+  }
+  
+  const path = pathname.replace(/^\/api/, '') || '/';
   const method = request.method;
 
   const corsHeaders = {
