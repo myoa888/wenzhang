@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>搜索 - 文章管理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">📝 文章</a>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">首页</a>
+        <a href="search.html" class="nav-link active">搜索</a>
+        <a href="login.html" class="nav-link" id="loginLink">登录</a>
+        <a href="manage.html" class="nav-link" id="manageLink" style="display:none">管理</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container">
+      <div class="search-page">
+        <div class="search-bar-large">
+          <input type="text" id="searchInput" placeholder="输入关键词搜索文章..." class="search-input">
+          <button onclick="doSearch()" class="btn btn-primary btn-large">搜索</button>
+        </div>
+        <div id="searchResults">
+          <p class="search-hint">输入关键词开始搜索...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2024 文章管理系统</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const keyword = params.get('keyword');
+
+    if (keyword) {
+      document.getElementById('searchInput').value = keyword;
+      doSearch();
+    }
+
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (token) {
+        document.getElementById('loginLink').style.display = 'none';
+        document.getElementById('manageLink').style.display = '';
+      }
+    }
+
+    async function doSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      if (!keyword) return;
+
+      document.getElementById('searchResults').innerHTML = '<div class="loading">搜索中...</div>';
+
+      try {
+        const res = await api.search(keyword);
+        if (res.success) {
+          renderResults(res.data, keyword);
+        }
+      } catch (e) {
+        document.getElementById('searchResults').innerHTML = '<div class="error">搜索失败</div>';
+      }
+    }
+
+    function renderResults(articles, keyword) {
+      const container = document.getElementById('searchResults');
+      
+      if (!articles || articles.length === 0) {
+        container.innerHTML = `<p class="search-hint">未找到"${keyword}"相关文章</p>`;
+        return;
+      }
+
+      container.innerHTML = `<h3>找到 ${articles.length} 篇相关文章</h3>` + 
+        articles.map(article => `
+          <article class="article-card search-result">
+            <div class="article-meta">
+              <span class="category-tag">${article.category_name || '未分类'}</span>
+              <span class="date">${formatDate(article.created_at)}</span>
+            </div>
+            <h3 class="article-title">
+              <a href="article.html?slug=${article.slug}">${highlightKeyword(article.title, keyword)}</a>
+            </h3>
+            <p class="article-summary">${highlightKeyword(article.summary || article.content.substring(0, 200), keyword)}...</p>
+          </article>
+        `).join('');
+    }
+
+    function highlightKeyword(text, keyword) {
+      if (!text || !keyword) return text;
+      const regex = new RegExp(keyword, 'gi');
+      return text.replace(regex, '<mark>$&</mark>');
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') doSearch();
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>

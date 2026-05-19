@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>写文章 - 文章管理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+</head>
+<body>
+  <header class="header editor-header">
+    <div class="container header-content">
+      <a href="manage.html" class="logo">← 返回管理</a>
+      <div class="editor-actions">
+        <button onclick="saveDraft()" class="btn">保存草稿</button>
+        <button onclick="publishArticle()" class="btn btn-primary">发布</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="editor-main">
+    <div class="editor-container">
+      <input type="text" id="title" class="editor-title" placeholder="文章标题" maxlength="100">
+      
+      <div class="editor-toolbar">
+        <button type="button" onclick="insertMarkdown('**', '**')" title="粗体">B</button>
+        <button type="button" onclick="insertMarkdown('*', '*')" title="斜体">I</button>
+        <button type="button" onclick="insertMarkdown('# ', '')" title="标题">H</button>
+        <button type="button" onclick="insertMarkdown('```\n', '\n```')" title="代码块">{ }</button>
+        <button type="button" onclick="insertMarkdown('`', '`')" title="行内代码">&lt;&gt;</button>
+        <button type="button" onclick="insertMarkdown('> ', '')" title="引用">"</button>
+        <button type="button" onclick="insertMarkdown('- ', '')" title="列表">•</button>
+        <button type="button" onclick="insertMarkdown('[](', ')')" title="链接">🔗</button>
+        <button type="button" onclick="insertMarkdown('![alt](', ')')" title="图片">🖼</button>
+      </div>
+
+      <div class="editor-layout">
+        <div class="editor-pane">
+          <textarea id="content" class="editor-content" placeholder="使用 Markdown 编写文章内容..."></textarea>
+        </div>
+        <div class="preview-pane">
+          <div class="preview-content markdown-body" id="preview"></div>
+        </div>
+      </div>
+
+      <div class="editor-meta">
+        <div class="meta-row">
+          <div class="meta-item">
+            <label>分类</label>
+            <select id="category" class="form-select">
+              <option value="">选择分类</option>
+            </select>
+          </div>
+          <div class="meta-item">
+            <label>标签</label>
+            <input type="text" id="tags" class="form-input" placeholder="多个标签用逗号分隔">
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item full">
+            <label>封面图片URL（可选）</label>
+            <input type="text" id="coverImage" class="form-input" placeholder="https://...">
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item full">
+            <label>摘要（可选，留空则自动截取）</label>
+            <textarea id="summary" class="form-textarea" placeholder="文章摘要..." rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let articleId = null;
+    let currentStatus = 'draft';
+
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+      gfm: true
+    });
+
+    // 检查登录
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('请先登录');
+        window.location.href = 'login.html';
+        return false;
+      }
+      return true;
+    }
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const res = await api.getCategories();
+        if (res.success) {
+          const select = document.getElementById('category');
+          res.data.forEach(cat => {
+            select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+          });
+        }
+      } catch (e) {
+        console.error('加载分类失败', e);
+      }
+    }
+
+    // 预览更新
+    function updatePreview() {
+      const content = document.getElementById('content').value;
+      document.getElementById('preview').innerHTML = marked.parse(content);
+    }
+
+    // 插入Markdown
+    function insertMarkdown(before, after) {
+      const textarea = document.getElementById('content');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      const selected = text.substring(start, end);
+      
+      textarea.value = text.substring(0, start) + before + selected + after + text.substring(end);
+      textarea.focus();
+      textarea.selectionStart = start + before.length;
+      textarea.selectionEnd = start + before.length + selected.length;
+      
+      updatePreview();
+    }
+
+    // 保存文章数据
+    async function saveArticle(status = 'draft') {
+      const title = document.getElementById('title').value.trim();
+      const content = document.getElementById('content').value.trim();
+      const category = document.getElementById('category').value;
+      const tags = document.getElementById('tags').value.split(',').map(t => t.trim()).filter(t => t);
+      const coverImage = document.getElementById('coverImage').value.trim();
+      const summary = document.getElementById('summary').value.trim();
+
+      if (!title || !content) {
+        alert('标题和内容不能为空');
+        return null;
+      }
+
+      const data = {
+        title,
+        content,
+        status,
+        summary: summary || undefined,
+        category_id: category || undefined,
+        cover_image: coverImage || undefined,
+        tags
+      };
+
+      return data;
+    }
+
+    // 保存草稿
+    async function saveDraft() {
+      if (!await checkAuth()) return;
+      
+      const data = await saveArticle('draft');
+      if (!data) return;
+
+      try {
+        if (articleId) {
+          const res = await api.updateArticle(articleId, data);
+          if (res.success) {
+            alert('草稿保存成功');
+            currentStatus = 'draft';
+          } else {
+            alert(res.error || '保存失败');
+          }
+        } else {
+          const res = await api.createArticle(data);
+          if (res.success) {
+            articleId = res.data.id;
+            alert('草稿保存成功');
+            currentStatus = 'draft';
+            history.replaceState(null, '', `?id=${articleId}`);
+          } else {
+            alert(res.error || '保存失败');
+          }
+        }
+      } catch (e) {
+        alert('保存失败，请重试');
+      }
+    }
+
+    // 发布文章
+    async function publishArticle() {
+      if (!await checkAuth()) return;
+      
+      const data = await saveArticle('published');
+      if (!data) return;
+
+      try {
+        if (articleId) {
+          const res = await api.updateArticle(articleId, data);
+          if (res.success) {
+            alert('文章发布成功！');
+            window.location.href = 'manage.html';
+          } else {
+            alert(res.error || '发布失败');
+          }
+        } else {
+          const res = await api.createArticle(data);
+          if (res.success) {
+            articleId = res.data.id;
+            alert('文章发布成功！');
+            window.location.href = 'manage.html';
+          } else {
+            alert(res.error || '发布失败');
+          }
+        }
+      } catch (e) {
+        alert('发布失败，请重试');
+      }
+    }
+
+    // 加载已有文章
+    async function loadArticle(id) {
+      try {
+        const res = await api.getMyArticles(localStorage.getItem('token'), {});
+        if (res.success) {
+          const article = res.data.articles.find(a => a.id === parseInt(id));
+          if (article) {
+            articleId = article.id;
+            document.getElementById('title').value = article.title;
+            document.getElementById('content').value = article.content;
+            document.getElementById('category').value = article.category_id || '';
+            document.getElementById('coverImage').value = article.cover_image || '';
+            document.getElementById('summary').value = article.summary || '';
+            
+            // 加载标签
+            const tagsRes = await fetch(`${API_BASE}/article/${article.id}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            const tagsData = await tagsRes.json();
+            if (tagsData.success && tagsData.data.tags) {
+              document.getElementById('tags').value = tagsData.data.tags.map(t => t.name).join(', ');
+            }
+            
+            updatePreview();
+            currentStatus = article.status;
+          }
+        }
+      } catch (e) {
+        console.error('加载文章失败', e);
+      }
+    }
+
+    // 事件绑定
+    document.getElementById('content').addEventListener('input', updatePreview);
+    
+    // Ctrl+S 保存
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveDraft();
+      }
+    });
+
+    // 初始化
+    (async () => {
+      if (!await checkAuth()) return;
+      await loadCategories();
+      
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (id) {
+        await loadArticle(id);
+      }
+    })();
+  </script>
+</body>
+</html>

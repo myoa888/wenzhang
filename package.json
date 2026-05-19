@@ -1,0 +1,18 @@
+{
+  "name": "wenzhang",
+  "version": "1.0.0",
+  "description": "文章管理系统",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute wenzhang --file=./schema.sql --local"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "wrangler": "^3.0.0"
+  }
+}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章详情</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">📝 文章</a>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">首页</a>
+        <a href="search.html" class="nav-link">搜索</a>
+        <a href="login.html" class="nav-link" id="loginLink">登录</a>
+        <a href="manage.html" class="nav-link" id="manageLink" style="display:none">管理</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main article-page">
+    <div class="container">
+      <article class="article-detail" id="articleDetail">
+        <div class="loading">加载中...</div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2024 文章管理系统</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+      gfm: true
+    });
+
+    async function loadArticle() {
+      const params = new URLSearchParams(window.location.search);
+      const slug = params.get('slug');
+      
+      if (!slug) {
+        document.getElementById('articleDetail').innerHTML = '<div class="error">文章不存在</div>';
+        return;
+      }
+
+      try {
+        const res = await api.getArticle(slug);
+        if (res.success) {
+          renderArticle(res.data);
+          document.title = res.data.title + ' - 文章';
+        } else {
+          document.getElementById('articleDetail').innerHTML = '<div class="error">' + res.error + '</div>';
+        }
+      } catch (e) {
+        document.getElementById('articleDetail').innerHTML = '<div class="error">加载失败</div>';
+      }
+    }
+
+    function renderArticle(article) {
+      const html = `
+        <header class="article-header">
+          <div class="article-meta">
+            <span class="category-tag">${article.category_name || '未分类'}</span>
+            <span class="date">${formatDate(article.created_at)}</span>
+            <span class="views">👁 ${article.view_count}</span>
+          </div>
+          <h1 class="article-title">${article.title}</h1>
+          <div class="article-author">
+            <span>👤 ${article.author_name}</span>
+          </div>
+          ${article.tags && article.tags.length > 0 ? `
+            <div class="article-tags">
+              ${article.tags.map(t => `<span class="tag">${t.name}</span>`).join('')}
+            </div>
+          ` : ''}
+        </header>
+        <div class="article-content markdown-body">
+          ${marked.parse(article.content)}
+        </div>
+        <footer class="article-footer">
+          <a href="index.html" class="btn">← 返回列表</a>
+        </footer>
+      `;
+      document.getElementById('articleDetail').innerHTML = html;
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (token) {
+        document.getElementById('loginLink').style.display = 'none';
+        document.getElementById('manageLink').style.display = '';
+      }
+    }
+
+    checkAuth();
+    loadArticle();
+  </script>
+</body>
+</html>

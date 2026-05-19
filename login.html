@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 文章管理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">📝 文章管理系统</h1>
+      <h2 class="auth-subtitle">登录</h2>
+      
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input type="text" id="username" name="username" required class="form-input" placeholder="请输入用户名">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input type="password" id="password" name="password" required class="form-input" placeholder="请输入密码">
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-block">登录</button>
+        </div>
+        
+        <p class="auth-link">
+          还没有账号？<a href="register.html">立即注册</a>
+        </p>
+      </form>
+
+      <div class="auth-footer">
+        <a href="index.html">← 返回首页</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        alert('请填写用户名和密码');
+        return;
+      }
+
+      try {
+        const res = await api.login(username, password);
+        if (res.success) {
+          localStorage.setItem('token', res.data.token);
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          alert('登录成功！');
+          window.location.href = 'manage.html';
+        } else {
+          alert(res.error || '登录失败');
+        }
+      } catch (e) {
+        alert('登录失败，请重试');
+      }
+    });
+  </script>
+</body>
+</html>

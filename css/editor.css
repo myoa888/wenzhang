@@ -1,0 +1,159 @@
+/* ================================================
+   文章编辑器样式
+   ================================================ */
+
+.editor-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.editor-main {
+  background: var(--white);
+  min-height: calc(100vh - 60px);
+  padding: 2rem;
+}
+
+.editor-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.editor-title {
+  width: 100%;
+  font-size: 2rem;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.editor-title::placeholder {
+  color: var(--text-light);
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.editor-toolbar button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.editor-toolbar button:hover {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  min-height: 500px;
+  margin-bottom: 1.5rem;
+}
+
+.editor-pane, .preview-pane {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-content {
+  flex: 1;
+  width: 100%;
+  min-height: 500px;
+  padding: 1rem;
+  border: none;
+  resize: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.editor-content:focus {
+  outline: none;
+}
+
+.preview-pane {
+  background: var(--white);
+  overflow-y: auto;
+}
+
+.preview-content {
+  padding: 1rem;
+  min-height: 500px;
+}
+
+.editor-meta {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+
+.meta-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.meta-item {
+  flex: 1;
+}
+
+.meta-item.full {
+  flex: 1 1 100%;
+}
+
+.meta-item label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+@media (max-width: 1024px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-pane {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .editor-main {
+    padding: 1rem;
+  }
+
+  .editor-title {
+    font-size: 1.5rem;
+  }
+
+  .meta-row {
+    flex-direction: column;
+  }
+}

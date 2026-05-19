@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 - 文章管理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/manage.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">📝 文章管理</a>
+      <nav class="nav">
+        <a href="index.html" class="nav-link">首页</a>
+        <a href="editor.html" class="btn btn-sm">✏️ 写文章</a>
+        <a href="#" class="nav-link" id="logoutLink">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main manage-page">
+    <div class="container">
+      <div class="manage-header">
+        <h1>文章管理</h1>
+        <div class="manage-stats" id="stats">
+          <div class="stat-item">
+            <span class="stat-num" id="statArticles">0</span>
+            <span class="stat-label">文章</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="statViews">0</span>
+            <span class="stat-label">浏览</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="statCategories">0</span>
+            <span class="stat-label">分类</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="manage-tabs">
+        <button class="tab-btn active" data-tab="articles">我的文章</button>
+        <button class="tab-btn" data-tab="categories">分类管理</button>
+      </div>
+
+      <!-- 文章列表 -->
+      <div class="tab-content" id="articlesTab">
+        <div class="filter-bar">
+          <select id="statusFilter" class="form-select">
+            <option value="">全部状态</option>
+            <option value="published">已发布</option>
+            <option value="draft">草稿</option>
+          </select>
+          <button onclick="loadMyArticles()" class="btn">刷新</button>
+        </div>
+
+        <div class="articles-table" id="myArticles">
+          <div class="loading">加载中...</div>
+        </div>
+      </div>
+
+      <!-- 分类管理 -->
+      <div class="tab-content" id="categoriesTab" style="display:none">
+        <div class="category-manager">
+          <div class="add-category">
+            <input type="text" id="newCategoryName" class="form-input" placeholder="分类名称">
+            <input type="text" id="newCategorySlug" class="form-input" placeholder="分类slug (英文)">
+            <button onclick="addCategory()" class="btn btn-primary">添加分类</button>
+          </div>
+
+          <div class="category-list" id="categoryList">
+            <div class="loading">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    // 检查登录
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('请先登录');
+        window.location.href = 'login.html';
+        return false;
+      }
+      return true;
+    }
+
+    // 加载统计
+    async function loadStats() {
+      try {
+        const res = await api.getStats();
+        if (res.success) {
+          document.getElementById('statArticles').textContent = res.data.articles;
+          document.getElementById('statViews').textContent = res.data.views;
+          document.getElementById('statCategories').textContent = res.data.categories;
+        }
+      } catch (e) {
+        console.error('加载统计失败', e);
+      }
+    }
+
+    // 加载我的文章
+    async function loadMyArticles() {
+      const status = document.getElementById('statusFilter').value;
+      
+      try {
+        const res = await api.getMyArticles(localStorage.getItem('token'), { status });
+        if (res.success) {
+          renderMyArticles(res.data.articles);
+        }
+      } catch (e) {
+        document.getElementById('myArticles').innerHTML = '<div class="error">加载失败</div>';
+      }
+    }
+
+    // 渲染文章列表
+    function renderMyArticles(articles) {
+      const container = document.getElementById('myArticles');
+      
+      if (!articles || articles.length === 0) {
+        container.innerHTML = '<div class="empty">暂无文章，<a href="editor.html">去写一篇</a></div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>标题</th>
+              <th>分类</th>
+              <th>状态</th>
+              <th>浏览</th>
+              <th>时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${articles.map(a => `
+              <tr>
+                <td>
+                  <a href="article.html?slug=${a.slug}" target="_blank">${a.title}</a>
+                </td>
+                <td>${a.category_name || '-'}</td>
+                <td>
+                  <span class="status-badge ${a.status}">${a.status === 'published' ? '已发布' : '草稿'}</span>
+                </td>
+                <td>${a.view_count || 0}</td>
+                <td>${formatDate(a.created_at)}</td>
+                <td>
+                  <a href="editor.html?id=${a.id}" class="btn-link">编辑</a>
+                  <button onclick="deleteArticle(${a.id})" class="btn-link danger">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 删除文章
+    async function deleteArticle(id) {
+      if (!confirm('确定要删除这篇文章吗？')) return;
+
+      try {
+        const res = await api.deleteArticle(id, localStorage.getItem('token'));
+        if (res.success) {
+          alert('删除成功');
+          loadMyArticles();
+          loadStats();
+        } else {
+          alert(res.error || '删除失败');
+        }
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const res = await api.getCategories();
+        if (res.success) {
+          renderCategories(res.data);
+        }
+      } catch (e) {
+        document.getElementById('categoryList').innerHTML = '<div class="error">加载失败</div>';
+      }
+    }
+
+    // 渲染分类列表
+    function renderCategories(categories) {
+      const container = document.getElementById('categoryList');
+      
+      if (!categories || categories.length === 0) {
+        container.innerHTML = '<div class="empty">暂无分类</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>Slug</th>
+              <th>排序</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${categories.map(c => `
+              <tr>
+                <td>${c.name}</td>
+                <td><code>${c.slug}</code></td>
+                <td>${c.sort_order}</td>
+                <td>
+                  <button onclick="deleteCategory(${c.id})" class="btn-link danger">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 添加分类
+    async function addCategory() {
+      const name = document.getElementById('newCategoryName').value.trim();
+      const slug = document.getElementById('newCategorySlug').value.trim();
+
+      if (!name || !slug) {
+        alert('请填写分类名称和slug');
+        return;
+      }
+
+      try {
+        const res = await api.createCategory({ name, slug }, localStorage.getItem('token'));
+        if (res.success) {
+          alert('添加成功');
+          document.getElementById('newCategoryName').value = '';
+          document.getElementById('newCategorySlug').value = '';
+          loadCategories();
+          loadStats();
+        } else {
+          alert(res.error || '添加失败');
+        }
+      } catch (e) {
+        alert('添加失败');
+      }
+    }
+
+    // 删除分类
+    async function deleteCategory(id) {
+      if (!confirm('确定要删除这个分类吗？')) return;
+
+      try {
+        const res = await api.deleteCategory(id, localStorage.getItem('token'));
+        if (res.success) {
+          alert('删除成功');
+          loadCategories();
+          loadStats();
+        } else {
+          alert(res.error || '删除失败');
+        }
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+
+    // 格式化日期
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    // Tab切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        document.getElementById(btn.dataset.tab + 'Tab').style.display = '';
+      });
+    });
+
+    // 状态筛选
+    document.getElementById('statusFilter').addEventListener('change', loadMyArticles);
+
+    // 退出登录
+    document.getElementById('logoutLink').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await api.logout(localStorage.getItem('token'));
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'index.html';
+    });
+
+    // 初始化
+    (async () => {
+      if (!await checkAuth()) return;
+      await loadStats();
+      await loadMyArticles();
+      await loadCategories();
+    })();
+  </script>
+</body>
+</html>

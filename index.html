@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章管理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="index.html" class="logo">📝 文章</a>
+      <nav class="nav">
+        <a href="index.html" class="nav-link active">首页</a>
+        <a href="search.html" class="nav-link">搜索</a>
+        <a href="login.html" class="nav-link" id="loginLink">登录</a>
+        <a href="manage.html" class="nav-link" id="manageLink" style="display:none">管理</a>
+        <a href="#" class="nav-link" id="logoutLink" style="display:none">退出</a>
+      </nav>
+      <button class="menu-toggle" id="menuToggle">☰</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="container">
+      <div class="layout">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">分类</h3>
+            <ul class="category-list" id="categoryList">
+              <li><a href="#" class="category-item active" data-category="">全部</a></li>
+            </ul>
+          </div>
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">标签</h3>
+            <div class="tags-cloud" id="tagsCloud"></div>
+          </div>
+        </aside>
+
+        <div class="content">
+          <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索文章..." class="search-input">
+            <button onclick="goSearch()" class="btn btn-primary">搜索</button>
+          </div>
+
+          <div class="articles-header">
+            <h2 id="pageTitle">最新文章</h2>
+            <a href="editor.html" class="btn btn-primary" id="writeBtn" style="display:none">
+              ✏️ 写文章
+            </a>
+          </div>
+
+          <div class="articles-list" id="articlesList">
+            <div class="loading">加载中...</div>
+          </div>
+
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2024 文章管理系统 | <a href="manage.html">管理</a></p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let currentCategory = '';
+    let currentPage = 1;
+
+    // 检查登录状态
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      if (token && user) {
+        document.getElementById('loginLink').style.display = 'none';
+        document.getElementById('manageLink').style.display = '';
+        document.getElementById('logoutLink').style.display = '';
+        document.getElementById('writeBtn').style.display = '';
+      }
+    }
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const res = await api.getCategories();
+        if (res.success) {
+          const list = document.getElementById('categoryList');
+          list.innerHTML = '<li><a href="#" class="category-item active" data-category="">全部</a></li>';
+          res.data.forEach(cat => {
+            list.innerHTML += `<li><a href="#" class="category-item" data-category="${cat.slug}">${cat.name}</a></li>`;
+          });
+        }
+      } catch (e) {
+        console.error('加载分类失败', e);
+      }
+    }
+
+    // 加载标签
+    async function loadTags() {
+      try {
+        const res = await api.getTags();
+        if (res.success) {
+          const cloud = document.getElementById('tagsCloud');
+          cloud.innerHTML = res.data.slice(0, 20).map(tag => 
+            `<span class="tag-item" style="color:${tag.color}">${tag.name}</span>`
+          ).join('');
+        }
+      } catch (e) {
+        console.error('加载标签失败', e);
+      }
+    }
+
+    // 加载文章列表
+    async function loadArticles(page = 1, category = '') {
+      currentPage = page;
+      currentCategory = category;
+      
+      document.getElementById('articlesList').innerHTML = '<div class="loading">加载中...</div>';
+      
+      try {
+        const params = { page, limit: 10 };
+        if (category) params.category = category;
+        
+        const res = await api.getArticles(params);
+        if (res.success) {
+          renderArticles(res.data.articles);
+          renderPagination(res.data);
+        }
+      } catch (e) {
+        document.getElementById('articlesList').innerHTML = '<div class="error">加载失败</div>';
+      }
+    }
+
+    // 渲染文章列表
+    function renderArticles(articles) {
+      const list = document.getElementById('articlesList');
+      
+      if (!articles || articles.length === 0) {
+        list.innerHTML = '<div class="empty">暂无文章</div>';
+        return;
+      }
+
+      list.innerHTML = articles.map(article => `
+        <article class="article-card">
+          <div class="article-meta">
+            <span class="category-tag">${article.category_name || '未分类'}</span>
+            <span class="date">${formatDate(article.created_at)}</span>
+            <span class="views">👁 ${article.view_count || 0}</span>
+          </div>
+          <h3 class="article-title">
+            <a href="article.html?slug=${article.slug}">${article.title}</a>
+          </h3>
+          <p class="article-summary">${article.summary || article.content.substring(0, 150)}...</p>
+          <div class="article-footer">
+            <span class="author">👤 ${article.author_name}</span>
+            <a href="article.html?slug=${article.slug}" class="read-more">阅读更多 →</a>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    // 渲染分页
+    function renderPagination(data) {
+      const pagination = document.getElementById('pagination');
+      if (data.totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      if (data.page > 1) {
+        html += `<a href="#" onclick="loadArticles(${data.page - 1}, '${currentCategory}')">上一页</a>`;
+      }
+      html += `<span class="current">${data.page} / ${data.totalPages}</span>`;
+      if (data.page < data.totalPages) {
+        html += `<a href="#" onclick="loadArticles(${data.page + 1}, '${currentCategory}')">下一页</a>`;
+      }
+      pagination.innerHTML = html;
+    }
+
+    // 搜索
+    function goSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      if (keyword) {
+        window.location.href = `search.html?keyword=${encodeURIComponent(keyword)}`;
+      }
+    }
+
+    // 格式化日期
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    // 退出登录
+    document.getElementById('logoutLink').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await api.logout();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.reload();
+    });
+
+    // 移动端菜单
+    document.getElementById('menuToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('show');
+    });
+
+    // 分类点击
+    document.getElementById('categoryList').addEventListener('click', (e) => {
+      if (e.target.classList.contains('category-item')) {
+        e.preventDefault();
+        document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+        e.target.classList.add('active');
+        loadArticles(1, e.target.dataset.category);
+        document.getElementById('sidebar').classList.remove('show');
+      }
+    });
+
+    // 搜索回车
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') goSearch();
+    });
+
+    // 初始化
+    checkAuth();
+    loadCategories();
+    loadTags();
+    loadArticles();
+  </script>
+</body>
+</html>
