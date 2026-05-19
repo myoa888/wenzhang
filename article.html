@@ -30,7 +30,7 @@
 
   <footer class="footer">
     <div class="container">
-      <p>&copy; 2024 文章管理系统</p>
+      <p>&copy; 2024 文章管理系统 | v<span id="version"></span></p>
     </div>
   </footer>
 
@@ -116,6 +116,7 @@
     }
 
     checkAuth();
+    document.getElementById('version').textContent = VERSION;
     loadArticle();
   </script>
 </body>

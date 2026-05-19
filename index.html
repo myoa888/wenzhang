@@ -64,7 +64,7 @@
 
   <footer class="footer">
     <div class="container">
-      <p>&copy; 2024 文章管理系统 | <a href="manage.html">管理</a></p>
+      <p>&copy; 2024 文章管理系统 | <a href="manage.html">管理</a> | v<span id="version"></span></p>
     </div>
   </footer>
 
@@ -232,6 +232,7 @@
 
     // 初始化
     checkAuth();
+    document.getElementById('version').textContent = VERSION;
     loadCategories();
     loadTags();
     loadArticles();
