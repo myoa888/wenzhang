@@ -87,13 +87,13 @@
     async function loadCategories() {
       try {
         const res = await api.getCategories();
-        if (res.success) {
-          const list = document.getElementById('categoryList');
-          list.innerHTML = '<li><a href="#" class="category-item active" data-category="">全部</a></li>';
-          res.data.forEach(cat => {
-            list.innerHTML += `<li><a href="#" class="category-item" data-category="${cat.slug}">${cat.name}</a></li>`;
-          });
-        }
+        // 兼容两种返回格式: {success: true, data: [...]} 或直接返回 [...]
+        const categories = res.success ? res.data : (Array.isArray(res) ? res : []);
+        const list = document.getElementById('categoryList');
+        list.innerHTML = '<li><a href="#" class="category-item active" data-category="">全部</a></li>';
+        categories.forEach(cat => {
+          list.innerHTML += `<li><a href="#" class="category-item" data-category="${cat.slug}">${cat.name}</a></li>`;
+        });
       } catch (e) {
         console.error('加载分类失败', e);
       }
@@ -103,12 +103,12 @@
     async function loadTags() {
       try {
         const res = await api.getTags();
-        if (res.success) {
-          const cloud = document.getElementById('tagsCloud');
-          cloud.innerHTML = res.data.slice(0, 20).map(tag => 
-            `<span class="tag-item" style="color:${tag.color}">${tag.name}</span>`
-          ).join('');
-        }
+        // 兼容两种返回格式
+        const tags = res.success ? res.data : (Array.isArray(res) ? res : []);
+        const cloud = document.getElementById('tagsCloud');
+        cloud.innerHTML = tags.slice(0, 20).map(tag => 
+          `<span class="tag-item" style="color:${tag.color || '#666'}">${tag.name}</span>`
+        ).join('');
       } catch (e) {
         console.error('加载标签失败', e);
       }
@@ -126,11 +126,14 @@
         if (category) params.category = category;
         
         const res = await api.getArticles(params);
-        if (res.success) {
-          renderArticles(res.data.articles);
-          renderPagination(res.data);
+        // 兼容两种返回格式
+        const data = res.success ? res.data : res;
+        if (data.articles || data.length !== undefined) {
+          renderArticles(data.articles || data);
+          renderPagination(data);
         }
       } catch (e) {
+        console.error('加载失败', e);
         document.getElementById('articlesList').innerHTML = '<div class="error">加载失败</div>';
       }
     }
