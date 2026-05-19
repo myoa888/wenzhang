@@ -104,6 +104,38 @@ export default {
         return json(categories.results);
       }
 
+      // Create category
+      if (path === '/categories' && method === 'POST') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const { name, slug, description } = body;
+        if (!name) return error('分类名称不能为空');
+        const existing = await DB.prepare('SELECT id FROM categories WHERE name = ? OR slug = ?').bind(name, slug || name).first();
+        if (existing) return error('分类名称或别名已存在');
+        const result = await DB.prepare('INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)').bind(name, slug || name, description || null, 0).run();
+        return success({ id: result.meta.last_row_id }, '分类创建成功');
+      }
+
+      // Update category
+      const catMatch = path.match(/^\/category\/(\d+)$/);
+      if (catMatch && method === 'PUT') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const id = catMatch[1];
+        const { name, slug, description, sort_order } = body;
+        await DB.prepare('UPDATE categories SET name = COALESCE(?, name), slug = COALESCE(?, slug), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order) WHERE id = ?').bind(name, slug, description, sort_order, id).run();
+        return success(null, '分类更新成功');
+      }
+
+      // Delete category
+      if (catMatch && method === 'DELETE') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const id = catMatch[1];
+        await DB.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
+        return success(null, '分类删除成功');
+      }
+
       // Articles list
       if (path === '/articles' && method === 'GET') {
         const page = parseInt(url.searchParams.get('page')) || 1;
