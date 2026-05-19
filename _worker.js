@@ -227,7 +227,7 @@ export default {
       // Tags
       if (path === '/tags' && method === 'GET') {
         const tags = await DB.prepare('SELECT t.*, COUNT(at.article_id) as article_count FROM tags t LEFT JOIN article_tags at ON t.id = at.tag_id GROUP BY t.id ORDER BY article_count DESC').all();
-        return json(tags.results);
+        return json({ success: true, data: tags.results });
       }
 
       // Register
