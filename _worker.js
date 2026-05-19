@@ -199,9 +199,7 @@ export default {
       // Article detail
       const articleMatch = path.match(/^\/article\/([^/]+)$/);
       if (articleMatch && method === 'GET') {
-        let slug = articleMatch[1];
-        // 解码 URL 编码的中文字符
-        try { slug = decodeURIComponent(slug); } catch(e) {}
+        const slug = articleMatch[1];
         const article = await DB.prepare(`SELECT a.*, c.name as category_name, c.slug as category_slug, u.username as author_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id LEFT JOIN users u ON a.user_id = u.id WHERE a.slug = ?`).bind(slug).first();
         if (!article) return error('文章不存在', 404);
         await DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE id = ?').bind(article.id).run();
