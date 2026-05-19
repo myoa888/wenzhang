@@ -156,12 +156,12 @@
             <span class="views">👁 ${article.view_count || 0}</span>
           </div>
           <h3 class="article-title">
-            <a href="article.html?slug=${article.slug}">${article.title}</a>
+            <a href="article.html?id=${article.id}">${article.title}</a>
           </h3>
           <p class="article-summary">${article.summary || article.content.substring(0, 150)}...</p>
           <div class="article-footer">
             <span class="author">👤 ${article.author_name}</span>
-            <a href="article.html?slug=${article.slug}" class="read-more">阅读更多 →</a>
+            <a href="article.html?id=${article.id}" class="read-more">阅读更多 →</a>
           </div>
         </article>
       `).join('');

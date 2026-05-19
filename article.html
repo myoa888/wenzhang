@@ -52,15 +52,17 @@
 
     async function loadArticle() {
       const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
       const slug = params.get('slug');
+      const identifier = id || slug;
       
-      if (!slug) {
+      if (!identifier) {
         document.getElementById('articleDetail').innerHTML = '<div class="error">文章不存在</div>';
         return;
       }
 
       try {
-        const res = await api.getArticle(slug);
+        const res = await api.getArticle(identifier);
         if (res.success) {
           renderArticle(res.data);
           document.title = res.data.title + ' - 文章';
