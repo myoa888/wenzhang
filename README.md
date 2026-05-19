@@ -1,148 +1,106 @@
-# 文章管理系统
+# 文章管理系统 - wenzhang
 
-一个现代化的文章管理系统，支持 Markdown 写作、分类管理、全文搜索，适用于个人博客或团队文档管理。
+一个基于 Cloudflare Workers + D1 的文章管理系统，支持 Markdown 写作、用户登录、全文搜索等功能。
 
 ## 功能特点
 
-- 📝 **Markdown 编辑器** - 实时预览，支持代码高亮
-- 🏷️ **分类与标签** - 灵活的文章组织方式
-- 🔍 **全文搜索** - 快速找到需要的文章
-- 📱 **响应式设计** - 完美适配手机和电脑
-- 🔐 **用户系统** - 注册、登录、文章权限管理
-- 💾 **数据持久化** - 基于 Cloudflare D1 数据库
+- 多用户注册/登录系统
+- Markdown 文章编辑器（实时预览）
+- 文章分类和标签管理
+- 全文搜索
+- 响应式设计（支持手机和电脑）
+- 访问统计
 
 ## 技术栈
 
-- **前端**: HTML5, CSS3, JavaScript (原生)
-- **后端**: Cloudflare Workers (JavaScript)
+- **前端**: HTML5 + CSS3 + JavaScript
+- **后端**: Cloudflare Workers/Pages Functions
 - **数据库**: Cloudflare D1 (SQLite)
-- **Markdown**: marked.js + highlight.js
-- **部署**: Cloudflare Workers/Pages
+- **部署**: Cloudflare Pages
 
-## 快速部署
+## 部署指南
 
 ### 1. 创建 D1 数据库
 
+在 Cloudflare Dashboard:
+1. 访问 Workers & Pages → D1
+2. 创建名为 `wenzhang` 的数据库
+3. 复制数据库 ID
+
+### 2. 初始化数据库
+
+运行以下命令：
 ```bash
-# 登录 Cloudflare
 wrangler login
-
-# 创建 D1 数据库
-wrangler d1 create wenzhang
-
-# 初始化数据库（会输出 database_id，保存下来）
 wrangler d1 execute wenzhang --file=./schema.sql
 ```
 
-### 2. 配置 Workers
+### 3. 部署到 Cloudflare Pages
 
-编辑 `wrangler.toml`，填入你的数据库信息：
+1. 在 GitHub 创建仓库，上传代码
+2. 访问 https://pages.cloudflare.com
+3. 选择 "Create a project" → "Connect to Git"
+4. 选择仓库并部署
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "wenzhang"
-database_id = "你的-database-id"
-```
+### 4. 绑定 D1 数据库
 
-### 3. 部署 Workers API
+在 Pages 项目设置中:
+1. Settings → Functions → D1 Database Bindings
+2. 添加绑定:
+   - Variable name: `DB`
+   - D1 database: `wenzhang`
 
-```bash
-# 安装依赖
-npm install
+### 5. 配置前端 API 地址
 
-# 部署
-npm run deploy
-```
-
-部署成功后会得到 Workers URL，例如：`https://wenzhang-api.xxx.workers.dev`
-
-### 4. 配置前端
-
-编辑 `js/config.js`，将 `API_BASE` 改为你的 Workers URL：
-
+修改 `js/config.js` 中的 `API_BASE`:
 ```javascript
-const API_BASE = 'https://wenzhang-api.xxx.workers.dev/api';
+const API_BASE = 'https://你的项目.pages.dev/api';
 ```
 
-### 5. 部署前端
-
-将前端文件部署到 Cloudflare Pages 或其他静态托管：
-
-1. 在 Cloudflare Dashboard 创建 Pages 项目
-2. 上传 `index.html`、`article.html`、`login.html` 等文件
-3. 或者连接到 GitHub 仓库实现自动部署
-
-## 本地开发
-
-```bash
-# 启动 Workers（需要先配置 wrangler.toml）
-npm run dev
-
-# 本地 D1 操作
-wrangler d1 execute wenzhang --local --file=./schema.sql
-```
-
-## 目录结构
+## 项目结构
 
 ```
 wenzhang/
 ├── index.html          # 首页/文章列表
 ├── article.html        # 文章详情页
-├── search.html         # 搜索页
+├── search.html          # 搜索页
 ├── login.html          # 登录页
 ├── register.html       # 注册页
 ├── editor.html         # 文章编辑器
 ├── manage.html         # 管理后台
-├── css/
-│   ├── style.css       # 主样式
-│   ├── editor.css     # 编辑器样式
-│   └── manage.css      # 管理后台样式
-├── js/
-│   ├── config.js       # API配置
-│   └── api.js          # API封装
-├── src/
-│   └── index.js        # Workers API
-├── schema.sql          # 数据库结构
-├── wrangler.toml       # Workers配置
-└── package.json        # 项目配置
+├── css/                # 样式文件
+├── js/                 # JavaScript 文件
+│   ├── config.js       # API 配置
+│   └── api.js          # API 请求封装
+├── functions/          # Cloudflare Pages Functions
+│   └── api/
+│       └── [path].js   # API 路由处理
+├── schema.sql          # 数据库 Schema
+└── wrangler.toml       # Workers 配置
 ```
 
 ## API 接口
 
 ### 公开接口
-- `GET /stats` - 获取统计信息
-- `GET /categories` - 获取分类列表
-- `GET /articles` - 获取文章列表
-- `GET /article/:slug` - 获取文章详情
-- `GET /search?keyword=` - 搜索文章
-- `GET /tags` - 获取标签列表
+- `GET /api/stats` - 获取统计数据
+- `GET /api/categories` - 获取分类列表
+- `GET /api/articles` - 获取文章列表
+- `GET /api/article/:slug` - 获取文章详情
+- `GET /api/search?keyword=xxx` - 搜索文章
+- `GET /api/tags` - 获取标签列表
 
-### 需要认证
-- `POST /auth/register` - 用户注册
-- `POST /auth/login` - 用户登录
-- `POST /auth/logout` - 退出登录
-- `GET /user` - 获取当前用户
-- `GET /my/articles` - 获取我的文章
-- `POST /articles` - 创建文章
-- `PUT /article/:id` - 更新文章
-- `DELETE /article/:id` - 删除文章
-- `POST /categories` - 创建分类
-- `DELETE /category/:id` - 删除分类
+### 认证接口
+- `POST /api/auth/register` - 用户注册
+- `POST /api/auth/login` - 用户登录
+- `POST /api/auth/logout` - 用户登出
+- `GET /api/user` - 获取当前用户信息
 
-## 使用说明
-
-1. **注册账号** - 访问注册页面创建账号
-2. **写文章** - 点击"写文章"进入编辑器
-3. **发布** - 编写完成后点击发布
-4. **管理** - 在管理后台可以查看、编辑、删除文章
-
-## 注意事项
-
-- 首次部署需要手动在 D1 数据库中执行 `schema.sql` 初始化
-- 建议定期备份 D1 数据库
-- Workers 有每日请求限制，免费版 100,000 次/天
+### 管理接口（需登录）
+- `GET /api/my/articles` - 获取我的文章
+- `POST /api/articles` - 创建文章
+- `PUT /api/article/:id` - 更新文章
+- `DELETE /api/article/:id` - 删除文章
 
 ## License
 
-MIT License
+MIT
