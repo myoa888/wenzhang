@@ -243,7 +243,9 @@ export default {
         if (!user) return error('需要登录', 401);
         const { title, content, summary, category_id, cover_image, tags, status } = body;
         if (!title || !content) return error('标题和内容不能为空');
-        const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id) VALUES (?, ?, ?)').bind(title, content, user.user_id).run();
+        // 先生成临时 slug（用时间戳+随机数），插入后再用 id 更新
+        const tempSlug = 'temp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+        const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug) VALUES (?, ?, ?, ?)').bind(title, content, user.user_id, tempSlug).run();
         const id = tempResult.meta.last_row_id;
         const slug = generateSlug(title, id);
         await DB.prepare('UPDATE articles SET slug = ? WHERE id = ?').bind(slug, id).run();
