@@ -33,11 +33,7 @@
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="container">
-      <p>&copy; 2024 文章管理系统 | v<span id="version"></span></p>
-    </div>
-  </footer>
+  <div id="footer-placeholder"></div>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
@@ -113,7 +109,7 @@
     });
 
     checkAuth();
-    document.getElementById('version').textContent = VERSION;
+    loadFooter();
   </script>
 </body>
 </html>
