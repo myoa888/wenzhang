@@ -7,9 +7,9 @@ export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   
-  // 只处理 /api/* 请求，其他返回 404
+  // 只处理 /api/* 请求，其他转发给静态资源
   if (!pathname.startsWith('/api')) {
-    return new Response('Not Found', { status: 404 });
+    return env.ASSETS.fetch(request);
   }
   
   const path = pathname.replace(/^\/api/, '') || '/';
