@@ -3,13 +3,14 @@
  * 处理所有 /api/* 请求
  */
 
-export async function onRequest({ request, env }) {
+export async function onRequest(context) {
+  const { request, env, next } = context;
   const url = new URL(request.url);
   const pathname = url.pathname;
   
   // 只处理 /api/* 请求，其他转发给静态资源
   if (!pathname.startsWith('/api')) {
-    return env.ASSETS.fetch(request);
+    return next();
   }
   
   const path = pathname.replace(/^\/api/, '') || '/';
