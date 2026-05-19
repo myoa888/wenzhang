@@ -108,12 +108,12 @@
     async function loadCategories() {
       try {
         const res = await api.getCategories();
-        if (res.success) {
-          const select = document.getElementById('category');
-          res.data.forEach(cat => {
-            select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
-          });
-        }
+        // 兼容两种返回格式
+        const categories = res.success ? res.data : (Array.isArray(res) ? res : []);
+        const select = document.getElementById('category');
+        categories.forEach(cat => {
+          select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+        });
       } catch (e) {
         console.error('加载分类失败', e);
       }
@@ -279,8 +279,9 @@
     async function loadArticle(id) {
       try {
         const res = await api.getMyArticles(localStorage.getItem('token'), {});
-        if (res.success) {
-          const article = res.data.articles.find(a => a.id === parseInt(id));
+        // 兼容两种返回格式
+        const articles = res.success ? (res.data.articles || res.data) : (res.articles || []);
+        const article = articles.find(a => a.id === parseInt(id));
           if (article) {
             articleId = article.id;
             document.getElementById('title').value = article.title;
