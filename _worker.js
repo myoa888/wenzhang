@@ -221,7 +221,7 @@ export default {
         const keyword = url.searchParams.get('keyword');
         if (!keyword) return error('请输入搜索关键词');
         const articles = await DB.prepare(`SELECT a.*, c.name as category_name, u.username as author_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id LEFT JOIN users u ON a.user_id = u.id WHERE a.status = 'published' AND (a.title LIKE ? OR a.content LIKE ?) ORDER BY a.created_at DESC LIMIT 50`).bind(`%${keyword}%`, `%${keyword}%`).all();
-        return json(articles.results);
+        return json({ success: true, data: articles.results });
       }
 
       // Tags
