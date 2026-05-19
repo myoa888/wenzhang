@@ -142,7 +142,7 @@ export default {
       // Categories
       if (path === '/categories' && method === 'GET') {
         const categories = await DB.prepare('SELECT * FROM categories ORDER BY sort_order ASC').all();
-        return json(categories.results);
+        return json({ success: true, data: categories.results });
       }
 
       // Create category
@@ -213,7 +213,7 @@ export default {
         await DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE id = ?').bind(article.id).run();
         const tags = await DB.prepare(`SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?`).bind(article.id).all();
         article.tags = tags.results;
-        return json(article);
+        return json({ success: true, data: article });
       }
 
       // Search
