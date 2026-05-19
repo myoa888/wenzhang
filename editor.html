@@ -32,7 +32,8 @@
         <button type="button" onclick="insertMarkdown('> ', '')" title="引用">"</button>
         <button type="button" onclick="insertMarkdown('- ', '')" title="列表">•</button>
         <button type="button" onclick="insertMarkdown('[](', ')')" title="链接">🔗</button>
-        <button type="button" onclick="insertMarkdown('![alt](', ')')" title="图片">🖼</button>
+        <button type="button" onclick="document.getElementById('imageUpload').click()" title="上传图片">🖼</button>
+        <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
       </div>
 
       <div class="editor-layout">
@@ -138,6 +139,50 @@
       textarea.selectionEnd = start + before.length + selected.length;
       
       updatePreview();
+    }
+
+    // 上传图片
+    async function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const textarea = document.getElementById('content');
+      const cursorPos = textarea.selectionStart;
+      const text = textarea.value;
+      
+      // 插入占位符
+      textarea.value = text.substring(0, cursorPos) + '\n![上传中...](...)\n' + text.substring(cursorPos);
+      textarea.focus();
+      
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        
+        if (data.success && data.data.url) {
+          // 替换占位符为实际图片
+          const before = text.substring(0, cursorPos);
+          const after = text.substring(cursorPos);
+          textarea.value = before + `\n![${file.name}](${data.data.url})\n` + after;
+          updatePreview();
+        } else {
+          alert(data.error || '上传失败');
+          // 删除占位符
+          textarea.value = before + after;
+        }
+      } catch (e) {
+        alert('上传失败: ' + e.message);
+        textarea.value = text;
+      }
+      
+      event.target.value = '';
     }
 
     // 保存文章数据

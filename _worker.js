@@ -86,6 +86,47 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
+    // Image upload (multipart form data)
+    if (path === '/upload' && method === 'POST') {
+      const user = await verifyToken(token);
+      if (!user) return error('需要登录', 401);
+      
+      const contentType = request.headers.get('content-type') || '';
+      if (!contentType.includes('multipart/form-data')) {
+        return error('需要上传文件', 400);
+      }
+      
+      try {
+        const formData = await request.formData();
+        const file = formData.get('image');
+        if (!file) return error('未找到图片文件', 400);
+        
+        const buffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        const ext = file.name.split('.').pop() || 'png';
+        const mimeType = file.type || `image/${ext}`;
+        
+        // 使用 imgbb 免费图床 API
+        const imgbbApiKey = env.IMGBB_API_KEY;
+        if (imgbbApiKey) {
+          const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `image=${encodeURIComponent(`data:${mimeType};base64,${base64}`)}`
+          });
+          const imgbbData = await imgbbRes.json();
+          if (imgbbData.success) {
+            return json({ url: imgbbData.data.url, filename: file.name });
+          }
+        }
+        
+        // 如果没有配置 imgbb，返回 base64（作为 data URL）
+        return json({ url: `data:${mimeType};base64,${base64}`, filename: file.name });
+      } catch (e) {
+        return error('上传失败: ' + e.message, 500);
+      }
+    }
+
     try {
       // Stats
       if (path === '/stats' && method === 'GET') {
@@ -158,7 +199,9 @@ export default {
       // Article detail
       const articleMatch = path.match(/^\/article\/([^/]+)$/);
       if (articleMatch && method === 'GET') {
-        const slug = articleMatch[1];
+        let slug = articleMatch[1];
+        // 解码 URL 编码的中文字符
+        try { slug = decodeURIComponent(slug); } catch(e) {}
         const article = await DB.prepare(`SELECT a.*, c.name as category_name, c.slug as category_slug, u.username as author_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id LEFT JOIN users u ON a.user_id = u.id WHERE a.slug = ?`).bind(slug).first();
         if (!article) return error('文章不存在', 404);
         await DB.prepare('UPDATE articles SET view_count = view_count + 1 WHERE id = ?').bind(article.id).run();
