@@ -7,6 +7,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>文章管理</title>
     <link rel="stylesheet" href="css/mobile.css">
+    <style>
+        .sub-tabs { display: flex; background: #fff; border-bottom: 1px solid #E5E5EA; }
+        .sub-tab { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; color: #8E8E93; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; }
+        .sub-tab.active { color: #007AFF; border-bottom-color: #007AFF; }
+        .sub-page { display: none; }
+        .sub-page.active { display: block; }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -72,49 +79,149 @@
 
         <!-- 我的页 -->
         <div id="page-my" class="page">
-            <div id="user-info-panel" style="display:none;">
-                <div class="user-info">
-                    <div class="user-avatar">👤</div>
-                    <div>
-                        <div id="user-name" class="user-name">用户名</div>
-                        <div class="user-stats">
-                            <span><strong id="user-articles">0</strong> 文章</span>
-                            <span><strong id="user-views">0</strong> 阅读</span>
+            <!-- 我的主页面 -->
+            <div id="my-main">
+                <div id="user-info-panel" style="display:none;">
+                    <div class="user-info">
+                        <div class="user-avatar">👤</div>
+                        <div>
+                            <div id="user-name" class="user-name">用户名</div>
+                            <div class="user-stats">
+                                <span><strong id="user-articles">0</strong> 文章</span>
+                                <span><strong id="user-views">0</strong> 阅读</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div id="login-panel" style="padding:40px 16px;text-align:center;">
+                    <p style="color:#8E8E93;margin-bottom:20px;">登录后查看更多功能</p>
+                    <a href="login.html" class="form-btn" style="display:inline-block;text-decoration:none;width:auto;padding:14px 40px;">登录 / 注册</a>
+                </div>
+                <div class="menu-list">
+                    <button class="menu-item" onclick="switchSubPage('stats')">
+                        <span class="menu-icon">📊</span>
+                        <span>数据统计</span>
+                        <span class="menu-arrow">›</span>
+                    </button>
+                    <button class="menu-item" onclick="switchSubPage('categories')">
+                        <span class="menu-icon">📁</span>
+                        <span>分类管理</span>
+                        <span class="menu-arrow">›</span>
+                    </button>
+                    <button class="menu-item" onclick="switchSubPage('ai-config')">
+                        <span class="menu-icon">🤖</span>
+                        <span>AI 配置</span>
+                        <span class="menu-arrow">›</span>
+                    </button>
+                    <button class="menu-item" onclick="switchSubPage('ideas')">
+                        <span class="menu-icon">💡</span>
+                        <span>创意管理</span>
+                        <span class="menu-arrow">›</span>
+                    </button>
+                </div>
+                <div id="logout-panel" class="menu-list" style="margin-top:12px;display:none;">
+                    <button id="logout-btn" class="menu-item" style="color:#FF3B30;">
+                        <span class="menu-icon">🚪</span>
+                        <span>退出登录</span>
+                    </button>
+                </div>
             </div>
-            <div id="login-panel" style="padding:40px 16px;text-align:center;">
-                <p style="color:#8E8E93;margin-bottom:20px;">登录后查看更多功能</p>
-                <a href="login.html" class="form-btn" style="display:inline-block;text-decoration:none;width:auto;padding:14px 40px;">登录 / 注册</a>
+
+            <!-- 数据统计子页面 -->
+            <div id="sub-stats" class="sub-page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="switchSubPage('main')">‹ 返回</button>
+                    <h1 class="page-title">数据统计</h1>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-articles">12</div>
+                        <div class="stat-label">文章总数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-views">5678</div>
+                        <div class="stat-label">总阅读量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-likes">234</div>
+                        <div class="stat-label">获赞数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-followers">56</div>
+                        <div class="stat-label">关注者</div>
+                    </div>
+                </div>
             </div>
-            <div class="menu-list">
-                <button class="menu-item" onclick="location.href='stats.html'">
-                    <span class="menu-icon">📊</span>
-                    <span>数据统计</span>
-                    <span class="menu-arrow">›</span>
-                </button>
-                <button class="menu-item" onclick="location.href='categories.html'">
-                    <span class="menu-icon">📁</span>
-                    <span>分类管理</span>
-                    <span class="menu-arrow">›</span>
-                </button>
-                <button class="menu-item" onclick="location.href='ai-config.html'">
-                    <span class="menu-icon">🤖</span>
-                    <span>AI 配置</span>
-                    <span class="menu-arrow">›</span>
-                </button>
-                <button class="menu-item" onclick="location.href='ideas.html'">
-                    <span class="menu-icon">💡</span>
-                    <span>创意管理</span>
-                    <span class="menu-arrow">›</span>
-                </button>
+
+            <!-- 分类管理子页面 -->
+            <div id="sub-categories" class="sub-page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="switchSubPage('main')">‹ 返回</button>
+                    <h1 class="page-title">分类管理</h1>
+                </div>
+                <div class="menu-list">
+                    <div class="menu-item">
+                        <span class="menu-icon">💻</span>
+                        <span>技术</span>
+                        <span class="menu-arrow" style="color:#8E8E93;">12篇</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">🌿</span>
+                        <span>生活</span>
+                        <span class="menu-arrow" style="color:#8E8E93;">8篇</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">💡</span>
+                        <span>创意</span>
+                        <span class="menu-arrow" style="color:#8E8E93;">5篇</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">📝</span>
+                        <span>笔记</span>
+                        <span class="menu-arrow" style="color:#8E8E93;">3篇</span>
+                    </div>
+                </div>
             </div>
-            <div id="logout-panel" class="menu-list" style="margin-top:12px;display:none;">
-                <button id="logout-btn" class="menu-item" style="color:#FF3B30;">
-                    <span class="menu-icon">🚪</span>
-                    <span>退出登录</span>
-                </button>
+
+            <!-- AI 配置子页面 -->
+            <div id="sub-ai-config" class="sub-page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="switchSubPage('main')">‹ 返回</button>
+                    <h1 class="page-title">AI 配置</h1>
+                </div>
+                <div class="config-item">
+                    <div class="config-label">AI 服务商</div>
+                    <select class="form-input" id="ai-provider" style="padding:12px;">
+                        <option value="openai">OpenAI</option>
+                        <option value="claude">Claude</option>
+                        <option value="local">本地模型</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <div class="config-label">API Key</div>
+                    <input type="password" id="api-key" class="form-input" placeholder="请输入 API Key">
+                </div>
+                <div style="padding:16px;">
+                    <button id="save-ai-btn" class="form-btn">保存配置</button>
+                </div>
+            </div>
+
+            <!-- 创意管理子页面 -->
+            <div id="sub-ideas" class="sub-page">
+                <div class="page-header">
+                    <button class="back-btn" onclick="switchSubPage('main')">‹ 返回</button>
+                    <h1 class="page-title">创意管理</h1>
+                </div>
+                <div class="categories" id="idea-categories">
+                    <button class="category-tag active" data-category="all">全部</button>
+                    <button class="category-tag" data-category="产品">产品</button>
+                    <button class="category-tag" data-category="工具">工具</button>
+                    <button class="category-tag" data-category="内容">内容</button>
+                    <button class="category-tag" data-category="技术">技术</button>
+                </div>
+                <div class="content">
+                    <div id="ideas-list" class="article-list"></div>
+                </div>
             </div>
         </div>
 
@@ -148,7 +255,9 @@
         // 状态管理
         const State = {
             currentPage: 'home',
+            currentSubPage: 'main',
             currentCategory: 'all',
+            ideaCategory: 'all',
             articles: [],
             loading: false,
             page: 1,
@@ -253,7 +362,7 @@
             setLoading(!append);
 
             try {
-                // 模拟数据（实际使用时替换为真实API）
+                // 模拟数据
                 const mockData = getMockArticles(State.page, State.currentCategory);
                 
                 if (mockData.length === 0) {
@@ -327,6 +436,27 @@
             return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
         }
 
+        // 切换子页面
+        function switchSubPage(subPage) {
+            // 隐藏所有子页面和主页面
+            $('my-main').style.display = 'none';
+            $$('.sub-page').forEach(p => p.classList.remove('active'));
+            
+            State.currentSubPage = subPage;
+
+            if (subPage === 'main') {
+                $('my-main').style.display = 'block';
+            } else {
+                const subEl = $(`sub-${subPage}`);
+                if (subEl) subEl.classList.add('active');
+                
+                // 如果是创意页面，初始化数据
+                if (subPage === 'ideas') {
+                    initIdeasPage();
+                }
+            }
+        }
+
         // 切换页面
         function switchPage(pageName) {
             // 保存当前页状态
@@ -348,21 +478,20 @@
 
             // 关键修复：当切换回首页时，确保正确显示内容
             if (pageName === 'home') {
-                // 如果文章列表为空或只有加载状态，重新加载
                 const container = $('article-list');
                 if (!container || container.querySelector('.empty-state') || container.children.length === 0) {
                     State.page = 1;
                     State.hasMore = true;
                     loadArticles(false);
                 } else if (container.querySelector('.loading') && !State.loading) {
-                    // 如果显示加载中但实际没有在加载，重置状态
                     loadArticles(false);
                 }
             }
 
-            // 切换到我的页面时刷新用户状态
+            // 切换到我的页面时刷新用户状态，重置子页面
             if (pageName === 'my') {
                 checkUserStatus();
+                switchSubPage('main');
             }
         }
 
@@ -386,6 +515,68 @@
                 loginPanel.style.display = 'block';
                 logoutPanel.style.display = 'none';
             }
+        }
+
+        // 初始化创意页面
+        function initIdeasPage() {
+            const STORAGE_KEY = 'wenzhang_ideas';
+            
+            // 初始化模拟数据
+            if (!localStorage.getItem(STORAGE_KEY)) {
+                const mockIdeas = [
+                    { id: 1, title: '智能家居控制系统', category: '产品', excerpt: '用AI打造更智能、更便捷的家居体验', date: '3天前' },
+                    { id: 2, title: '个人知识管理App', category: '工具', excerpt: '帮助用户高效管理和回顾所学知识', date: '1周前' },
+                    { id: 3, title: '在线协作白板', category: '工具', excerpt: '支持多人实时协作的在线白板工具', date: '2周前' },
+                    { id: 4, title: '短视频脚本生成器', category: '内容', excerpt: 'AI辅助创作短视频脚本，提高创作效率', date: '5天前' }
+                ];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(mockIdeas));
+            }
+
+            renderIdeas();
+            
+            // 分类切换
+            $$('#idea-categories .category-tag').forEach(tag => {
+                tag.onclick = () => {
+                    $$('#idea-categories .category-tag').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                    State.ideaCategory = tag.dataset.category;
+                    renderIdeas();
+                };
+            });
+        }
+
+        // 渲染创意列表
+        function renderIdeas() {
+            const STORAGE_KEY = 'wenzhang_ideas';
+            const container = $('ideas-list');
+            if (!container) return;
+
+            let ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            if (State.ideaCategory !== 'all') {
+                ideas = ideas.filter(i => i.category === State.ideaCategory);
+            }
+
+            if (ideas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💡</div>
+                        <p>暂无${State.ideaCategory === 'all' ? '' : State.ideaCategory}创意</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = ideas.map(idea => `
+                <div class="article-item">
+                    <div class="article-title">${escapeHtml(idea.title)}</div>
+                    <div class="article-meta">
+                        <span class="article-category">${escapeHtml(idea.category)}</span>
+                        <span>${idea.date}</span>
+                    </div>
+                    ${idea.excerpt ? `<div class="article-excerpt">${escapeHtml(idea.excerpt)}</div>` : ''}
+                </div>
+            `).join('');
         }
 
         // 保存搜索历史
@@ -475,7 +666,6 @@
                     const scrollTop = content.scrollTop;
                     const clientHeight = content.clientHeight;
                     
-                    // 滚动到底部前200px时加载更多
                     if (scrollTop + clientHeight > scrollHeight - 200) {
                         loadArticles(true);
                     }
@@ -509,7 +699,22 @@
                 $('article-content').value = '';
                 switchPage('home');
             };
+
+            // AI 配置保存
+            $('save-ai-btn').onclick = () => {
+                const provider = $('ai-provider').value;
+                const apiKey = $('api-key').value;
+                if (!apiKey) {
+                    showToast('请输入 API Key');
+                    return;
+                }
+                localStorage.setItem('ai_config', JSON.stringify({ provider, apiKey }));
+                showToast('配置已保存');
+            };
         }
+
+        // 暴露到全局
+        window.switchSubPage = switchSubPage;
 
         // 页面加载完成后初始化
         if (document.readyState === 'loading') {
