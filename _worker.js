@@ -137,19 +137,29 @@ const INIT_TABLES = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME
   )`,
-  // AI 配置表
+  // AI 配置表（支持多配置）
   `CREATE TABLE IF NOT EXISTS ai_config (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
     provider TEXT DEFAULT 'siliconflow',
     model TEXT DEFAULT 'deepseek-ai/DeepSeek-V3',
     api_key TEXT,
     api_base TEXT DEFAULT 'https://api.siliconflow.cn/v1',
     temperature REAL DEFAULT 0.7,
     max_tokens INTEGER DEFAULT 2000,
+    is_default INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, name)
   )`,
+  // 迁移旧数据
+  `INSERT OR IGNORE INTO ai_config (user_id, name, provider, model, api_key, api_base, temperature, max_tokens, is_default)
+   SELECT user_id, '默认配置', provider, model, api_key, api_base, temperature, max_tokens, 1
+   FROM (
+     SELECT user_id, provider, model, api_key, api_base, temperature, max_tokens
+     FROM ai_config WHERE id IN (SELECT min(id) FROM ai_config GROUP BY user_id)
+   )`,
   // 文章审核历史表
   `CREATE TABLE IF NOT EXISTS article_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -240,11 +250,17 @@ export default {
       } catch (e) { return null; }
     }
     
-    // 获取用户的 AI 配置
+    // 获取用户的 AI 配置（优先使用默认配置）
     async function getUserAIConfig(userId) {
       const defaultKey = 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
       
-      let config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ?').bind(userId).first();
+      // 优先获取默认配置
+      let config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ? AND is_default = 1').bind(userId).first();
+      
+      // 如果没有默认配置，获取第一个
+      if (!config) {
+        config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ? ORDER BY id ASC LIMIT 1').bind(userId).first();
+      }
       
       if (config && config.api_key) {
         return {
@@ -256,7 +272,7 @@ export default {
         };
       }
       
-      // 使用默认配置
+      // 使用系统默认配置
       return {
         apiKey: defaultKey,
         model: 'deepseek-ai/DeepSeek-V3',
@@ -1042,98 +1058,126 @@ ${issues}
         });
       }
 
-      // ========== AI 配置 API ==========
-      // 获取 AI 配置
+      // ========== AI 配置 API（多配置版本）==========
+      // 获取所有 AI 配置列表
       if (path === '/ai/config' && method === 'GET') {
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         
-        let config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ?').bind(user.user_id).first();
+        const configs = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ? ORDER BY is_default DESC, id ASC').bind(user.user_id).all();
         
-        // 如果没有配置，返回默认配置（使用内置 Key）
-        if (!config) {
-          return json({
-            success: true,
-            data: {
-              provider: 'siliconflow',
-              model: 'deepseek-ai/DeepSeek-V3',
-              api_key: '', // 不返回实际 Key
-              api_base: 'https://api.siliconflow.cn/v1',
-              temperature: 0.7,
-              max_tokens: 2000,
-              is_default: true
-            }
-          });
-        }
+        // 格式化返回，隐藏完整 API Key
+        const data = configs.results.map(c => ({
+          id: c.id,
+          name: c.name,
+          provider: c.provider,
+          model: c.model,
+          api_key: c.api_key ? '****' + c.api_key.slice(-4) : '',
+          api_base: c.api_base,
+          temperature: c.temperature,
+          max_tokens: c.max_tokens,
+          is_default: c.is_default === 1
+        }));
         
-        // 返回配置（不暴露完整 API Key）
-        return json({
-          success: true,
-          data: {
-            provider: config.provider,
-            model: config.model,
-            api_key: config.api_key ? '****' + config.api_key.slice(-4) : '',
-            api_base: config.api_base,
-            temperature: config.temperature,
-            max_tokens: config.max_tokens,
-            is_default: false
-          }
-        });
+        return json({ success: true, data });
       }
       
-      // 保存 AI 配置
+      // 创建新 AI 配置
       if (path === '/ai/config' && method === 'POST') {
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         
-        const { provider, model, api_key, api_base, temperature, max_tokens } = body;
+        const { name, provider, model, api_key, api_base, temperature, max_tokens } = body;
         
-        if (!provider || !model) {
-          return error('提供商和模型不能为空');
+        if (!name) return error('配置名称不能为空');
+        if (!provider || !model) return error('提供商和模型不能为空');
+        
+        // 检查名称是否重复
+        const existing = await DB.prepare('SELECT id FROM ai_config WHERE user_id = ? AND name = ?').bind(user.user_id, name).first();
+        if (existing) return error('配置名称已存在');
+        
+        // 如果设为默认，先取消其他默认
+        const { is_default } = body;
+        if (is_default) {
+          await DB.prepare('UPDATE ai_config SET is_default = 0 WHERE user_id = ?').bind(user.user_id).run();
         }
         
-        // 检查是否使用默认配置（空 API Key）
-        const existing = await DB.prepare('SELECT id, api_key FROM ai_config WHERE user_id = ?').bind(user.user_id).first();
+        await DB.prepare(`
+          INSERT INTO ai_config (user_id, name, provider, model, api_key, api_base, temperature, max_tokens, is_default)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(user.user_id, name, provider, model, api_key || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, is_default ? 1 : 0).run();
         
-        if (api_key && api_key.startsWith('****')) {
-          // 用户没有修改 Key，保持原有 Key
-          const keepKey = existing?.api_key;
-          if (existing) {
-            await DB.prepare(`
-              UPDATE ai_config SET provider = ?, model = ?, api_key = ?, api_base = ?, temperature = ?, max_tokens = ?, updated_at = datetime('now')
-              WHERE user_id = ?
-            `).bind(provider, model, keepKey || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, user.user_id).run();
-          } else {
-            await DB.prepare(`
-              INSERT INTO ai_config (user_id, provider, model, api_key, api_base, temperature, max_tokens)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).bind(user.user_id, provider, model, keepKey || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000).run();
-          }
-        } else {
-          // 用户提供了新 Key 或清空了 Key
-          if (existing) {
-            await DB.prepare(`
-              UPDATE ai_config SET provider = ?, model = ?, api_key = ?, api_base = ?, temperature = ?, max_tokens = ?, updated_at = datetime('now')
-              WHERE user_id = ?
-            `).bind(provider, model, api_key || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, user.user_id).run();
-          } else {
-            await DB.prepare(`
-              INSERT INTO ai_config (user_id, provider, model, api_key, api_base, temperature, max_tokens)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).bind(user.user_id, provider, model, api_key || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000).run();
-          }
-        }
-        
-        return success({ message: 'AI 配置已保存' }, '保存成功');
+        return success({ message: '配置创建成功' });
       }
       
-      // 删除/重置 AI 配置（恢复默认）
-      if (path === '/ai/config' && method === 'DELETE') {
+      // 更新 AI 配置
+      if (path === '/ai/config/update' && method === 'POST') {
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         
-        await DB.prepare('DELETE FROM ai_config WHERE user_id = ?').bind(user.user_id).run();
-        return success({ message: 'AI 配置已重置为默认' }, '重置成功');
+        const { id, name, provider, model, api_key, api_base, temperature, max_tokens } = body;
+        
+        if (!id) return error('配置ID不能为空');
+        if (!name) return error('配置名称不能为空');
+        
+        // 验证配置归属
+        const config = await DB.prepare('SELECT id, api_key as old_key FROM ai_config WHERE id = ? AND user_id = ?').bind(id, user.user_id).first();
+        if (!config) return error('配置不存在或无权修改');
+        
+        // 检查名称是否被其他配置使用
+        const nameConflict = await DB.prepare('SELECT id FROM ai_config WHERE user_id = ? AND name = ? AND id != ?').bind(user.user_id, name, id).first();
+        if (nameConflict) return error('配置名称已被使用');
+        
+        // 如果 API Key 显示为掩码，保持原有 Key
+        const finalApiKey = (api_key && api_key.startsWith('****')) ? config.old_key : api_key;
+        
+        await DB.prepare(`
+          UPDATE ai_config SET name = ?, provider = ?, model = ?, api_key = ?, api_base = ?, temperature = ?, max_tokens = ?, updated_at = datetime('now')
+          WHERE id = ?
+        `).bind(name, provider, model, finalApiKey || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, id).run();
+        
+        return success({ message: '配置更新成功' });
+      }
+      
+      // 删除 AI 配置
+      if (path === '/ai/config/delete' && method === 'POST') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        
+        const { id } = body;
+        if (!id) return error('配置ID不能为空');
+        
+        const config = await DB.prepare('SELECT id, is_default FROM ai_config WHERE id = ? AND user_id = ?').bind(id, user.user_id).first();
+        if (!config) return error('配置不存在');
+        
+        await DB.prepare('DELETE FROM ai_config WHERE id = ?').bind(id).run();
+        
+        // 如果删除的是默认配置，将第一个配置设为默认
+        if (config.is_default) {
+          const first = await DB.prepare('SELECT id FROM ai_config WHERE user_id = ? ORDER BY id ASC LIMIT 1').bind(user.user_id).first();
+          if (first) {
+            await DB.prepare('UPDATE ai_config SET is_default = 1 WHERE id = ?').bind(first.id).run();
+          }
+        }
+        
+        return success({ message: '配置已删除' });
+      }
+      
+      // 设置默认配置
+      if (path === '/ai/config/default' && method === 'POST') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        
+        const { id } = body;
+        if (!id) return error('配置ID不能为空');
+        
+        const config = await DB.prepare('SELECT id FROM ai_config WHERE id = ? AND user_id = ?').bind(id, user.user_id).first();
+        if (!config) return error('配置不存在');
+        
+        await DB.prepare('UPDATE ai_config SET is_default = 0 WHERE user_id = ?').bind(user.user_id).run();
+        await DB.prepare('UPDATE ai_config SET is_default = 1 WHERE id = ?').bind(id).run();
+        
+        return success({ message: '已设为默认配置' });
       }
 
       // Categories
