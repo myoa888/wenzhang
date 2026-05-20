@@ -3,6 +3,161 @@
  * 处理 /api/* 请求，其他转发给静态资源
  */
 
+// 数据库初始化SQL（只包含核心表）
+const INIT_TABLES = [
+  // 用户表
+  `CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT,
+    avatar TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 分类表
+  `CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 文章表
+  `CREATE TABLE IF NOT EXISTS articles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    content TEXT NOT NULL,
+    summary TEXT,
+    cover_image TEXT,
+    user_id INTEGER NOT NULL,
+    category_id INTEGER,
+    status TEXT DEFAULT 'draft',
+    view_count INTEGER DEFAULT 0,
+    is_featured INTEGER DEFAULT 0,
+    allow_comment INTEGER DEFAULT 1,
+    need_regenerate INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME
+  )`,
+  // 标签表
+  `CREATE TABLE IF NOT EXISTS tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    color TEXT DEFAULT '#666666'
+  )`,
+  // 文章标签关联表
+  `CREATE TABLE IF NOT EXISTS article_tags (
+    article_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (article_id, tag_id)
+  )`,
+  // 评论表
+  `CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    parent_id INTEGER,
+    content TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    issue_type TEXT,
+    fixed INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 会话表
+  `CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 创意想法表（缺少的表）
+  `CREATE TABLE IF NOT EXISTS ideas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    source TEXT DEFAULT 'manual',
+    status TEXT DEFAULT 'pending',
+    article_id INTEGER,
+    priority INTEGER DEFAULT 0,
+    tags TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 待办任务表
+  `CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    assignee TEXT DEFAULT 'user',
+    title TEXT NOT NULL,
+    description TEXT,
+    task_type TEXT NOT NULL,
+    related_article_id INTEGER,
+    related_idea_id INTEGER,
+    priority INTEGER DEFAULT 5,
+    status TEXT DEFAULT 'pending',
+    due_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME
+  )`,
+  // 附件表
+  `CREATE TABLE IF NOT EXISTS attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER,
+    idea_id INTEGER,
+    user_id INTEGER NOT NULL,
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    storage_path TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // AI生成记录表
+  `CREATE TABLE IF NOT EXISTS ai_generations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    idea_id INTEGER,
+    article_id INTEGER,
+    user_id INTEGER NOT NULL,
+    prompt TEXT NOT NULL,
+    model TEXT NOT NULL,
+    result TEXT,
+    status TEXT DEFAULT 'pending',
+    error_message TEXT,
+    tokens_used INTEGER,
+    cost DECIMAL(10,4),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME
+  )`,
+  // 文章审核历史表
+  `CREATE TABLE IF NOT EXISTS article_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    revision_number INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    summary TEXT,
+    cover_image TEXT,
+    comment TEXT,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
+  // 默认数据
+  `INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
+  ('技术', 'tech', '技术文章、编程、软件开发', 1),
+  ('生活', 'life', '生活随笔、日常记录', 2),
+  ('笔记', 'notes', '学习笔记、知识整理', 3),
+  ('其他', 'other', '其他类型文章', 99)`,
+  `INSERT OR IGNORE INTO users (id, username, password_hash, email, avatar) 
+  VALUES (1, 'ai_assistant', 'ai_no_password', 'ai@system.local', '/assets/ai-avatar.png')`
+];
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -28,6 +183,17 @@ export default {
 
     if (method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // 初始化数据库（首次访问时创建表）
+    if (env.DB) {
+      try {
+        for (const sql of INIT_TABLES) {
+          await env.DB.prepare(sql).run();
+        }
+      } catch (e) {
+        console.error('数据库初始化失败:', e);
+      }
     }
 
     async function hashPassword(password) {
