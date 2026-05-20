@@ -46,16 +46,6 @@
           <textarea class="form-input form-textarea" id="ideaContent" placeholder="简要描述你的创意想法..." rows="4"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">优先级</label>
-          <select class="form-input" id="ideaPriority">
-            <option value="0">普通</option>
-            <option value="3">一般</option>
-            <option value="5">重要</option>
-            <option value="7">紧急</option>
-            <option value="9">最高</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label class="form-label">标签（用逗号分隔）</label>
           <input type="text" class="form-input" id="ideaTags" placeholder="例如: 科技, 生活">
         </div>
@@ -153,7 +143,6 @@
           <div class="card-header">
             <span class="tag tag-${idea.status}">${getStatusText(idea.status)}</span>
             ${idea.category_name ? `<span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">${idea.category_name}</span>` : ''}
-            ${idea.priority > 5 ? '<span style="color:#e53935;font-size:12px;">⚡ 紧急</span>' : ''}
           </div>
           <p class="card-content">${escapeHtml(idea.content)}</p>
           ${idea.article_id ? `<a href="article.html?id=${idea.article_id}" class="btn btn-outline" style="margin-top:8px;padding:6px 12px;font-size:12px;" onclick="event.stopPropagation()">查看已生成文章 →</a>` : ''}
@@ -186,12 +175,11 @@
         showToast('请输入创意内容');
         return;
       }
-      const priority = parseInt(document.getElementById('ideaPriority').value);
       const tags = document.getElementById('ideaTags').value.trim();
       const category_id = document.getElementById('ideaCategory').value ? parseInt(document.getElementById('ideaCategory').value) : null;
 
       try {
-        await api.post('/ideas', { content, priority, tags: tags || null, category_id });
+        await api.post('/ideas', { content, tags: tags || null, category_id });
         showToast('创意已添加，AI将自动生成文章');
         hideAddModal();
         await loadIdeas();
