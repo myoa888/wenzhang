@@ -1297,7 +1297,7 @@ ${issues}
         const passwordHash = await hashPassword(password);
         if (passwordHash !== user.password_hash) return error('用户名或密码错误');
         const token = generateToken();
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
         await DB.prepare('INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)').bind(user.id, token, expiresAt).run();
         return success({ token, user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar } }, '登录成功');
       }
@@ -1327,7 +1327,7 @@ ${issues}
         const bindings = [user.user_id];
         if (status) { where += ' AND a.status = ?'; bindings.push(status); }
         const countResult = await DB.prepare(`SELECT COUNT(*) as total FROM articles a ${where}`).bind(...bindings).first();
-        const articles = await DB.prepare(`SELECT a.*, c.name as category_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id ${where} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`).bind(...bindings, limit, offset).all();
+        const articles = await DB.prepare(`SELECT a.id, a.title, a.summary, a.cover_image, a.category_id, a.status, a.view_count, a.created_at, a.updated_at, c.name as category_name FROM articles a LEFT JOIN categories c ON a.category_id = c.id ${where} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`).bind(...bindings, limit, offset).all();
         return json({ articles: articles.results, total: countResult.total, page, limit });
       }
 

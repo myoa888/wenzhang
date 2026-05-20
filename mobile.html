@@ -5,82 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>资讯 - 文章管理</title>
+  <title>资讯</title>
   <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/spa.css">
 </head>
 <body>
   <div id="app">
-    <!-- 顶部导航 -->
-    <header class="header">
-      <div class="header-left">
-        <button class="menu-btn" onclick="toggleSidebar()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <h1 class="header-title">资讯</h1>
-      <div class="header-right">
-        <button class="search-btn" onclick="showSearch()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- 标签栏 -->
-    <nav class="tabs">
-      <div class="tab-scroll">
-        <button class="tab active" data-tab="all">推荐</button>
-        <button class="tab" data-tab="tech">技术</button>
-        <button class="tab" data-tab="life">生活</button>
-        <button class="tab" data-tab="notes">笔记</button>
-        <button class="tab" data-tab="pending">待审核</button>
-      </div>
-    </nav>
-
-    <!-- 内容区域 -->
-    <main class="content">
-      <!-- 刷新提示 -->
-      <div class="pull-tip" id="pullTip">
-        <span>下拉刷新</span>
-      </div>
-      
-      <!-- 文章列表 -->
-      <div class="article-list" id="articleList">
-        <div class="loading">
-          <div class="spinner"></div>
-          <span>加载中...</span>
-        </div>
-      </div>
-
-      <!-- 空状态 -->
-      <div class="empty-state" id="emptyState" style="display:none;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        <p>暂无文章</p>
-      </div>
-    </main>
-
-    <!-- 底部导航 -->
-    <nav class="bottom-nav">
-      <a href="mobile.html" class="nav-item active">
+    <!-- 页面容器 -->
+    <div id="page-container"></div>
+    
+    <!-- 底部 Tabbar -->
+    <nav class="tabbar" id="tabbar">
+      <a href="#home" class="tab-item active" data-tab="home">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
         <span>首页</span>
       </a>
-      <a href="ideas.html" class="nav-item">
+      <a href="#ideas" class="tab-item" data-tab="ideas">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="2" x2="12" y2="6"></line>
           <line x1="12" y1="18" x2="12" y2="22"></line>
@@ -93,236 +36,51 @@
         </svg>
         <span>创意</span>
       </a>
-      <a href="tasks.html" class="nav-item">
+      <a href="#tasks" class="tab-item" data-tab="tasks">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 11l3 3L22 4"></path>
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
         </svg>
         <span>待办</span>
-        <span class="badge" id="taskBadge" style="display:none;">0</span>
+        <span class="tab-badge" id="taskBadge" style="display:none;">0</span>
       </a>
-      <a href="index.html" class="nav-item">
+      <a href="#my" class="tab-item" data-tab="my">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
         </svg>
         <span>我的</span>
       </a>
     </nav>
-
-    <!-- 侧边栏 -->
-    <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <img src="assets/default-avatar.png" alt="avatar" class="avatar" id="userAvatar">
-        <div class="user-info">
-          <span class="username" id="username">未登录</span>
-          <span class="user-role">自媒体创作者</span>
-        </div>
-      </div>
-      <div class="sidebar-content">
-        <a href="mobile.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          </svg>
-          首页
-        </a>
-        <a href="ideas.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          我的创意
-        </a>
-        <a href="ideas.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"></path>
-            <path d="M12 8v4l3 3"></path>
-          </svg>
-          💡 创意想法
-        </a>
-        <a href="stats.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-          📊 数据统计
-        </a>
-        <a href="ai-config.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          🤖 AI配置
-        </a>
-        <a href="tasks.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"></path>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-          </svg>
-          待办任务
-        </a>
-        <a href="categories.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          📂 分类管理
-        </a>
-        <a href="manage.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-          管理后台
-        </a>
-        <a href="editor.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-          写文章
-        </a>
-        <div class="sidebar-divider"></div>
-        <a href="#" class="sidebar-item" onclick="logout()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          退出登录
-        </a>
-      </div>
-    </div>
-
-    <!-- 遮罩 -->
-    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-    <!-- 搜索弹窗 -->
-    <div class="search-modal" id="searchModal">
-      <div class="search-header">
-        <input type="text" class="search-input" id="searchInput" placeholder="搜索文章...">
-        <button class="search-close" onclick="hideSearch()">取消</button>
-      </div>
-      <div class="search-results" id="searchResults"></div>
-    </div>
-
-    <!-- Toast 提示 -->
-    <div class="toast" id="toast"></div>
   </div>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/ideas.js"></script>
+  <script src="js/pages/tasks.js"></script>
+  <script src="js/pages/my.js"></script>
   <script>
-    let currentTab = 'all';
-    let currentPage = 1;
-    let isLoading = false;
-    let isLoggedIn = false;
-
-    // 初始化
-    document.addEventListener('DOMContentLoaded', async () => {
-      checkLogin();
-      initTabs();
-      loadArticles();
+    // TasksPage 全局访问
+    window.TasksPage = TasksPage;
+  </script>
+  <script>
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', () => {
+      App.init();
+      
+      // 更新待办角标
       updateTaskBadge();
     });
 
-    // 检查登录状态
-    async function checkLogin() {
-      const user = await api.getUser();
-      if (user) {
-        isLoggedIn = true;
-        document.getElementById('username').textContent = user.username;
-        if (user.avatar) {
-          document.getElementById('userAvatar').src = user.avatar;
-        }
-      }
-    }
-
-    // 初始化标签页
-    function initTabs() {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          currentTab = tab.dataset.tab;
-          currentPage = 1;
-          loadArticles();
-        });
-      });
-    }
-
-    // 加载文章列表
-    async function loadArticles(refresh = false) {
-      if (isLoading) return;
-      isLoading = true;
-
-      const list = document.getElementById('articleList');
-      if (refresh) {
-        list.innerHTML = '<div class="loading"><div class="spinner"></div><span>加载中...</span></div>';
-      }
-
-      try {
-        let data;
-        if (currentTab === 'pending') {
-          if (!isLoggedIn) {
-            showToast('请先登录');
-            return;
-          }
-          const res = await api.get('/pending-review');
-          data = res.data || [];
-        } else if (currentTab === 'all') {
-          const res = await api.get('/articles?limit=20&page=' + currentPage);
-          data = res.articles || [];
-        } else {
-          const res = await api.get(`/articles?category=${currentTab}&limit=20&page=${currentPage}`);
-          data = res.articles || [];
-        }
-
-        if (data.length === 0 && currentPage === 1) {
-          list.innerHTML = '';
-          document.getElementById('emptyState').style.display = 'flex';
-          return;
-        }
-        document.getElementById('emptyState').style.display = 'none';
-
-        const html = data.map(article => `
-          <a href="article.html?id=${article.id}" class="article-card">
-            ${article.cover_image ? `<div class="article-cover" style="background-image: url(${article.cover_image})"></div>` : ''}
-            <div class="article-info">
-              <h3 class="article-title">${escapeHtml(article.title)}</h3>
-              ${article.summary ? `<p class="article-summary">${escapeHtml(article.summary.substring(0, 80))}...</p>` : ''}
-              <div class="article-meta">
-                ${article.category_name ? `<span class="article-category">${article.category_name}</span>` : ''}
-                <span class="article-date">${formatDate(article.published_at || article.created_at)}</span>
-              </div>
-            </div>
-          </a>
-        `).join('');
-
-        if (refresh || currentPage === 1) {
-          list.innerHTML = html;
-        } else {
-          list.innerHTML += html;
-        }
-
-        currentPage++;
-      } catch (e) {
-        console.error('加载失败:', e);
-        list.innerHTML = '<div class="error">加载失败，请重试</div>';
-      } finally {
-        isLoading = false;
-      }
-    }
-
     // 更新待办角标
     async function updateTaskBadge() {
-      if (!isLoggedIn) return;
+      if (!api.getToken()) return;
       try {
-        const res = await api.get('/tasks?assignee=user&status=pending');
-        const count = res.data?.length || 0;
+        const res = await api.get('/tasks?status=pending');
+        const count = res?.length || 0;
         const badge = document.getElementById('taskBadge');
         if (count > 0) {
           badge.textContent = count > 99 ? '99+' : count;
@@ -333,113 +91,8 @@
       } catch (e) {}
     }
 
-    // 切换侧边栏
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('overlay');
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('show');
-    }
-
-    // 显示搜索
-    function showSearch() {
-      document.getElementById('searchModal').classList.add('show');
-      document.getElementById('searchInput').focus();
-    }
-
-    // 隐藏搜索
-    function hideSearch() {
-      document.getElementById('searchModal').classList.remove('show');
-      document.getElementById('searchInput').value = '';
-      document.getElementById('searchResults').innerHTML = '';
-    }
-
-    // 搜索
-    document.getElementById('searchInput').addEventListener('input', debounce(async (e) => {
-      const keyword = e.target.value.trim();
-      if (keyword.length < 2) {
-        document.getElementById('searchResults').innerHTML = '';
-        return;
-      }
-      try {
-        const res = await api.get('/search?keyword=' + encodeURIComponent(keyword));
-        const html = (res.data || []).map(article => `
-          <a href="article.html?id=${article.id}" class="search-item">
-            <h4>${escapeHtml(article.title)}</h4>
-            <p>${escapeHtml(article.summary?.substring(0, 50) || '')}...</p>
-          </a>
-        `).join('') || '<div class="no-results">没有找到相关文章</div>';
-        document.getElementById('searchResults').innerHTML = html;
-      } catch (e) {}
-    }, 300));
-
-    // 退出登录
-    async function logout() {
-      await api.post('/auth/logout');
-      window.location.href = 'login.html';
-    }
-
-    // 工具函数
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function formatDate(dateStr) {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-      if (diff < 60000) return '刚刚';
-      if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
-      if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
-      if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
-      return `${date.getMonth() + 1}/${date.getDate()}`;
-    }
-
-    function debounce(fn, delay) {
-      let timer;
-      return function(...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, args), delay);
-      };
-    }
-
-    function showToast(msg, duration = 2000) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), duration);
-    }
-
-    // 下拉刷新
-    let startY = 0;
-    document.addEventListener('touchstart', (e) => {
-      startY = e.touches[0].clientY;
-    });
-
-    document.addEventListener('touchend', (e) => {
-      const endY = e.changedTouches[0].clientY;
-      if (startY < 50 && endY - startY > 100) {
-        document.getElementById('pullTip').classList.add('show');
-        setTimeout(() => {
-          loadArticles(true);
-          document.getElementById('pullTip').classList.remove('show');
-        }, 500);
-      }
-    });
-
-    // 滚动加载更多
-    window.addEventListener('scroll', () => {
-      if (currentTab === 'pending') return; // 待审核不自动加载
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-      const clientHeight = document.documentElement.clientHeight;
-      if (scrollTop + clientHeight >= scrollHeight - 100) {
-        loadArticles();
-      }
-    });
+    // 全局跳转
+    window.Tasks = { toggle: TasksPage.toggle };
   </script>
 </body>
 </html>
