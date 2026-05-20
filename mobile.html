@@ -36,13 +36,13 @@
         </svg>
         <span>创意</span>
       </a>
-      <a href="#tasks" class="tab-item" data-tab="tasks">
+      <a href="#stats" class="tab-item" data-tab="stats">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 11l3 3L22 4"></path>
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
         </svg>
-        <span>待办</span>
-        <span class="tab-badge" id="taskBadge" style="display:none;">0</span>
+        <span>统计</span>
       </a>
       <a href="#my" class="tab-item" data-tab="my">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -60,39 +60,13 @@
   <script src="js/app.js"></script>
   <script src="js/pages/home.js"></script>
   <script src="js/pages/ideas.js"></script>
-  <script src="js/pages/tasks.js"></script>
+  <script src="js/pages/stats.js"></script>
   <script src="js/pages/my.js"></script>
-  <script>
-    // TasksPage 全局访问
-    window.TasksPage = TasksPage;
-  </script>
   <script>
     // 初始化应用
     document.addEventListener('DOMContentLoaded', () => {
       App.init();
-      
-      // 更新待办角标
-      updateTaskBadge();
     });
-
-    // 更新待办角标
-    async function updateTaskBadge() {
-      if (!api.getToken()) return;
-      try {
-        const res = await api.get('/tasks?status=pending');
-        const count = res?.length || 0;
-        const badge = document.getElementById('taskBadge');
-        if (count > 0) {
-          badge.textContent = count > 99 ? '99+' : count;
-          badge.style.display = 'block';
-        } else {
-          badge.style.display = 'none';
-        }
-      } catch (e) {}
-    }
-
-    // 全局跳转
-    window.Tasks = { toggle: TasksPage.toggle };
   </script>
 </body>
 </html>
