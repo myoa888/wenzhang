@@ -479,13 +479,14 @@ export default {
 3. 结构清晰，有小标题分段
 4. 字数控制在800-1500字
 5. 适当使用Markdown格式
-6. 如果需要配图，请在需要图片的位置用 [IMAGE:图片描述] 占位
+6. 【重要】文章必须包含2-4张配图，在需要的位置用 [IMAGE:图片描述] 占位
+7. 图片描述要具体，如：[IMAGE:科技感十足的智能手机展示图]
 
 输出格式：
 {
   "title": "文章标题",
   "summary": "文章摘要（100字以内）",
-  "content": "文章完整内容（Markdown格式）",
+  "content": "文章完整内容（Markdown格式，必须包含2-4张[IMAGE:描述]图片占位符）",
   "tags": ["标签1", "标签2", "标签3"]
 }`;
 
@@ -547,7 +548,65 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
         const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind(parsed.title || idea_content.substring(0, 30), parsed.content || idea_content, user.user_id, tempSlug, 'pending_review').run();
         const articleId = tempResult.meta.last_row_id;
         const slug = generateSlug(parsed.title || idea_content, articleId);
-        await DB.prepare('UPDATE articles SET slug = ?, summary = ?, category_id = ? WHERE id = ?').bind(slug, parsed.summary || null, category_id || null, articleId).run();
+
+        // 处理图片占位符 [IMAGE:描述] → 生成实际图片
+        let finalContent = parsed.content || idea_content;
+        const imageMatches = finalContent.match(/\[IMAGE:([^\]]+)\]/g);
+        if (imageMatches && imageMatches.length > 0) {
+          console.log(`发现 ${imageMatches.length} 个图片占位符，开始生成...`);
+          for (const match of imageMatches) {
+            const prompt = match.replace('[IMAGE:', '').replace(']', '').trim();
+            try {
+              // 调用图片生成API
+              let imageUrl = null;
+
+              // 优先使用 SiliconFlow API
+              const imgApiKey = env.IMAGE_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+              const imgRes = await fetch('https://api.siliconflow.cn/v1/image/generations', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${imgApiKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  model: 'stabilityai/stable-diffusion-3-medium',
+                  prompt: prompt,
+                  image_size: '1024x1024'
+                })
+              });
+              const imgData = await imgRes.json();
+              if (imgData.images && imgData.images[0]) {
+                imageUrl = imgData.images[0].url;
+              }
+
+              // 备用：使用免费 Z-Image API
+              if (!imageUrl) {
+                const zRes = await fetch('https://zimage.run/api/v1/generate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt, width: 1024, height: 1024 })
+                });
+                const zData = await zRes.json();
+                if (zData.image_url) {
+                  imageUrl = zData.image_url;
+                }
+              }
+
+              if (imageUrl) {
+                // 替换占位符为实际图片
+                finalContent = finalContent.replace(match, `\n![${prompt}](${imageUrl})\n`);
+                console.log(`图片生成成功: ${imageUrl}`);
+              }
+            } catch (imgErr) {
+              console.error('生成图片失败:', imgErr);
+            }
+            // 避免请求过快
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+
+        // 更新文章内容（包含实际图片）
+        await DB.prepare('UPDATE articles SET slug = ?, summary = ?, category_id = ?, content = ? WHERE id = ?').bind(slug, parsed.summary || null, category_id || null, finalContent, articleId).run();
 
         // 添加标签
         if (parsed.tags && parsed.tags.length > 0) {
@@ -613,13 +672,14 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
 3. 结构清晰，有小标题分段
 4. 字数控制在800-1500字
 5. 适当使用Markdown格式
-6. 如果需要配图，请在需要图片的位置用 [IMAGE:图片描述] 占位
+6. 【重要】文章必须包含2-4张配图，在需要的位置用 [IMAGE:图片描述] 占位
+7. 图片描述要具体，如：[IMAGE:科技感十足的智能手机展示图]
 
 输出格式：
 {
   "title": "文章标题",
   "summary": "文章摘要（100字以内）",
-  "content": "文章完整内容（Markdown格式）",
+  "content": "文章完整内容（Markdown格式，必须包含2-4张[IMAGE:描述]图片占位符）",
   "tags": ["标签1", "标签2", "标签3"]
 }`;
 
@@ -688,7 +748,46 @@ ${idea.content}`;
           const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind(parsed.title || idea.content.substring(0, 30), parsed.content || idea.content, user.user_id, tempSlug, 'pending_review').run();
           const articleId = tempResult.meta.last_row_id;
           const slug = generateSlug(parsed.title || idea.content, articleId);
-          await DB.prepare('UPDATE articles SET slug = ?, summary = ?, category_id = ? WHERE id = ?').bind(slug, parsed.summary || null, idea.category_id || null, articleId).run();
+
+          // 处理图片占位符 [IMAGE:描述] → 生成实际图片
+          let finalContent = parsed.content || idea.content;
+          const imageMatches = finalContent.match(/\[IMAGE:([^\]]+)\]/g);
+          if (imageMatches && imageMatches.length > 0) {
+            for (const match of imageMatches) {
+              const prompt = match.replace('[IMAGE:', '').replace(']', '').trim();
+              try {
+                let imageUrl = null;
+                const imgApiKey = env.IMAGE_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+                const imgRes = await fetch('https://api.siliconflow.cn/v1/image/generations', {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${imgApiKey}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ model: 'stabilityai/stable-diffusion-3-medium', prompt, image_size: '1024x1024' })
+                });
+                const imgData = await imgRes.json();
+                if (imgData.images && imgData.images[0]) {
+                  imageUrl = imgData.images[0].url;
+                }
+                if (!imageUrl) {
+                  const zRes = await fetch('https://zimage.run/api/v1/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, width: 1024, height: 1024 })
+                  });
+                  const zData = await zRes.json();
+                  if (zData.image_url) imageUrl = zData.image_url;
+                }
+                if (imageUrl) {
+                  finalContent = finalContent.replace(match, `\n![${prompt}](${imageUrl})\n`);
+                }
+              } catch (imgErr) {
+                console.error('生成图片失败:', imgErr);
+              }
+              await new Promise(r => setTimeout(r, 500));
+            }
+          }
+
+          // 更新文章内容（包含实际图片）
+          await DB.prepare('UPDATE articles SET slug = ?, summary = ?, category_id = ?, content = ? WHERE id = ?').bind(slug, parsed.summary || null, idea.category_id || null, finalContent, articleId).run();
 
           // 添加标签
           if (parsed.tags && parsed.tags.length > 0) {
