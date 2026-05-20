@@ -118,23 +118,6 @@ const Components = {
     `;
   },
 
-  // 待办项
-  taskItem(task) {
-    const isDone = task.status === 'completed';
-    return `
-      <div class="task-item ${isDone ? 'done' : ''}" data-id="${task.id}">
-        <label class="task-check">
-          <input type="checkbox" ${isDone ? 'checked' : ''} onchange="Tasks.toggle('${task.id}')">
-          <span class="checkmark"></span>
-        </label>
-        <div class="task-content">
-          <div class="task-title">${this.escape(task.title)}</div>
-          ${task.description ? `<div class="task-desc">${this.escape(task.description)}</div>` : ''}
-        </div>
-      </div>
-    `;
-  },
-
   // 工具方法
   escape(text) {
     if (!text) return '';

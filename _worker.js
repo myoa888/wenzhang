@@ -90,23 +90,6 @@ const INIT_TABLES = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
-  // 待办任务表
-  `CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    assignee TEXT DEFAULT 'user',
-    title TEXT NOT NULL,
-    description TEXT,
-    task_type TEXT NOT NULL,
-    related_article_id INTEGER,
-    related_idea_id INTEGER,
-    priority INTEGER DEFAULT 5,
-    status TEXT DEFAULT 'pending',
-    due_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    completed_at DATETIME
-  )`,
   // 附件表
   `CREATE TABLE IF NOT EXISTS attachments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1428,8 +1411,6 @@ ${issues}
         // 如果标记了问题类型，文章状态改为 need_fix
         if (issue_type) {
           await DB.prepare("UPDATE articles SET status = 'need_fix', need_regenerate = 1 WHERE id = ?").bind(article_id).run();
-          // 创建AI修复任务
-          await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_article_id, priority) VALUES (?, 'ai', ?, 'fix_article', ?, 8)`).bind(user.user_id, `修复文章问题: ${issue_type}`, article_id).run();
         }
         
         const result = await DB.prepare('INSERT INTO comments (article_id, user_id, parent_id, content, status, issue_type) VALUES (?, ?, ?, ?, ?, ?)').bind(article_id, user.user_id, parent_id || null, content.trim(), issue_type ? 'approved' : 'approved', issue_type || null).run();
@@ -1484,9 +1465,7 @@ ${issues}
         if (!content || !content.trim()) return error('创意内容不能为空');
         const result = await DB.prepare('INSERT INTO ideas (user_id, content, source, priority, tags, category_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(user.user_id, content.trim(), source || 'manual', priority || 0, tags || null, category_id || null, 'pending').run();
         const ideaId = result.meta.last_row_id;
-        // 自动创建AI任务
-        await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_idea_id, priority) VALUES (?, 'ai', ?, 'generate_article', ?, ?)`).bind(user.user_id, `生成文章: ${content.substring(0, 20)}...`, ideaId, priority || 5).run();
-        return success({ id: ideaId }, '创意已添加，AI将自动生成文章');
+        return success({ id: ideaId }, '创意已添加');
       }
 
       // 更新创意
@@ -1508,53 +1487,6 @@ ${issues}
         const id = ideaMatch[1];
         await DB.prepare('DELETE FROM ideas WHERE id = ? AND user_id = ?').bind(id, user.user_id).run();
         return success(null, '创意已删除');
-      }
-
-      // ========== 待办任务 API ==========
-
-      // 获取待办列表
-      if (path === '/tasks' && method === 'GET') {
-        const user = await verifyToken(token);
-        if (!user) return error('需要登录', 401);
-        const assignee = url.searchParams.get('assignee'); // user, ai, all
-        const status = url.searchParams.get('status');
-        let where = 'WHERE t.user_id = ?';
-        const bindings = [user.user_id];
-        if (assignee && assignee !== 'all') { where += ' AND t.assignee = ?'; bindings.push(assignee); }
-        if (status) { where += ' AND t.status = ?'; bindings.push(status); }
-        const tasks = await DB.prepare(`SELECT t.*, a.title as article_title, i.content as idea_content FROM tasks t LEFT JOIN articles a ON t.related_article_id = a.id LEFT JOIN ideas i ON t.related_idea_id = i.id ${where} ORDER BY t.priority DESC, t.created_at ASC`).bind(...bindings).all();
-        return json({ success: true, data: tasks.results });
-      }
-
-      // 创建待办
-      if (path === '/tasks' && method === 'POST') {
-        const user = await verifyToken(token);
-        if (!user) return error('需要登录', 401);
-        const { title, description, task_type, assignee, priority, related_article_id, related_idea_id } = body;
-        if (!title) return error('待办标题不能为空');
-        const result = await DB.prepare('INSERT INTO tasks (user_id, title, description, task_type, assignee, priority, related_article_id, related_idea_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(user.user_id, title, description || null, task_type || 'other', assignee || 'user', priority || 5, related_article_id || null, related_idea_id || null).run();
-        return success({ id: result.meta.last_row_id }, '待办已创建');
-      }
-
-      // 更新待办状态
-      const taskMatch = path.match(/^\/task\/(\d+)$/);
-      if (taskMatch && method === 'PUT') {
-        const user = await verifyToken(token);
-        if (!user) return error('需要登录', 401);
-        const id = taskMatch[1];
-        const { status, title, priority } = body;
-        const safeBind = (v) => v === undefined ? null : v;
-        await DB.prepare(`UPDATE tasks SET status = COALESCE(?, status), title = COALESCE(?, title), priority = COALESCE(?, priority), updated_at = datetime('now'), completed_at = CASE WHEN ? = 'completed' THEN datetime('now') ELSE NULL END WHERE id = ? AND user_id = ?`).bind(safeBind(status), safeBind(title), safeBind(priority), safeBind(status), id, user.user_id).run();
-        return success(null, '待办已更新');
-      }
-
-      // 删除待办
-      if (taskMatch && method === 'DELETE') {
-        const user = await verifyToken(token);
-        if (!user) return error('需要登录', 401);
-        const id = taskMatch[1];
-        await DB.prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?').bind(id, user.user_id).run();
-        return success(null, '待办已删除');
       }
 
       // ========== 文章审核相关 ==========
@@ -1595,8 +1527,6 @@ ${issues}
         const ideas = await DB.prepare('SELECT * FROM ideas WHERE user_id = ? ORDER BY created_at DESC').bind(user.user_id).all();
         // 导出所有附件
         const attachments = await DB.prepare('SELECT * FROM attachments WHERE user_id = ? ORDER BY created_at DESC').bind(user.user_id).all();
-        // 导出所有待办
-        const tasks = await DB.prepare('SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC').bind(user.user_id).all();
         
         const exportData = {
           export_time: new Date().toISOString(),
@@ -1604,8 +1534,7 @@ ${issues}
           user_id: user.user_id,
           articles: articles.results,
           ideas: ideas.results,
-          attachments: attachments.results,
-          tasks: tasks.results
+          attachments: attachments.results
         };
         
         // 生成 JSON 文件
@@ -1672,193 +1601,6 @@ ${issues}
         // 删除数据库记录
         await DB.prepare('DELETE FROM attachments WHERE id = ?').bind(id).run();
         return success(null, '附件已删除');
-      }
-
-      // ========== AI 自动化检测 API (供 Cron 或登录用户调用) ==========
-      if (path === '/ai/automation' && method === 'POST') {
-        // 验证：自动化密钥 或 登录用户
-        const autoKey = request.headers.get('X-Auto-Key');
-        const authUser = await verifyToken(token);
-        if (autoKey !== env.AUTO_KEY && !authUser) {
-          return error('请先登录或提供自动化密钥', 401);
-        }
-
-        // 获取用户ID（优先使用登录用户，否则默认1）
-        const userId = authUser?.user_id || 1;
-
-        const results = { processed: 0, created: 0, fixed: 0 };
-
-        // 1. 检测有未修复问题的文章
-        const needFixArticles = await DB.prepare(`
-          SELECT DISTINCT a.id, a.title, COUNT(c.id) as issue_count
-          FROM articles a
-          JOIN comments c ON a.id = c.article_id
-          WHERE a.status = 'need_fix' AND c.fixed = 0 AND c.issue_type IS NOT NULL
-          GROUP BY a.id
-        `).all();
-        
-        for (const article of needFixArticles.results || []) {
-          // 确保有AI修复任务
-          const existingTask = await DB.prepare(`SELECT id FROM tasks WHERE related_article_id = ? AND assignee = 'ai' AND status = 'pending' AND task_type = 'fix_article'`).bind(article.id).first();
-          if (!existingTask) {
-            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_article_id, priority) VALUES (?, 'ai', ?, 'fix_article', ?, 9)`).bind(userId, `修复文章问题 (${article.issue_count}个)`, article.id).run();
-            results.created++;
-          }
-          results.processed++;
-        }
-
-        // 2. 检测待生成的创意
-        const pendingIdeas = await DB.prepare(`SELECT id, content, priority FROM ideas WHERE status = 'pending' ORDER BY priority DESC LIMIT 10`).all();
-        for (const idea of pendingIdeas.results || []) {
-          const existingTask = await DB.prepare(`SELECT id FROM tasks WHERE related_idea_id = ? AND assignee = 'ai' AND status = 'pending' AND task_type = 'generate_article'`).bind(idea.id).first();
-          if (!existingTask) {
-            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_idea_id, priority) VALUES (?, 'ai', ?, 'generate_article', ?, ?)`).bind(userId, `生成文章: ${idea.content.substring(0, 20)}...`, idea.id, idea.priority).run();
-            results.created++;
-          }
-        }
-
-        // 3. 自动处理待办任务（如果有AI Key）
-        const deepseekKey = env.DEEPSEEK_API_KEY;
-        
-        // 即使没有AI Key，也标记任务为已完成（避免重复处理）
-        if (!deepseekKey) {
-          await DB.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now') WHERE assignee = 'ai' AND status = 'pending'`).run();
-          return json({ 
-            success: true, 
-            data: { ...results, message: 'AI Key未配置，任务已跳过' } 
-          });
-        }
-        
-        try {
-          const aiTasks = await DB.prepare(`SELECT t.*, i.content as idea_content FROM tasks t LEFT JOIN ideas i ON t.related_idea_id = i.id WHERE t.assignee = 'ai' AND t.status = 'pending' ORDER BY t.priority DESC LIMIT 5`).all();
-          
-          for (const task of aiTasks.results || []) {
-            await DB.prepare(`UPDATE tasks SET status = 'in_progress', updated_at = datetime('now') WHERE id = ?`).bind(task.id).run();
-            
-            if (task.task_type === 'generate_article' && task.idea_content) {
-              // 调用 AI 生成文章
-              const apiBase = 'https://api.siliconflow.cn/v1';
-              const aiRes = await fetch(`${apiBase}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${deepseekKey}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  model: 'deepseek-ai/DeepSeek-V3',
-                  messages: [
-                    { role: 'system', content: '你是专业自媒体写作助手，生成800-1500字优质文章，Markdown格式，需要配图位置用[IMAGE:描述]占位。' },
-                    { role: 'user', content: `根据以下创意写一篇文章：${task.idea_content}` }
-                  ]
-                })
-              });
-              
-              const aiData = await aiRes.json();
-              if (aiData.choices?.[0]?.message?.content) {
-                let content = aiData.choices[0].message.content;
-                
-                // 处理图片占位符 [IMAGE:描述] → 生成实际图片
-                const imageMatches = content.match(/\[IMAGE:([^\]]+)\]/g);
-                if (imageMatches && imageMatches.length > 0) {
-                  console.log(`[自动化任务] 发现 ${imageMatches.length} 个图片占位符`);
-                  for (const match of imageMatches) {
-                    const prompt = match.replace('[IMAGE:', '').replace(']', '').trim();
-                    try {
-                      let imageUrl = null;
-                      const imgApiKey = env.IMAGE_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
-                      const imgRes = await fetch('https://api.siliconflow.cn/v1/image/generations', {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${imgApiKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: 'stabilityai/stable-diffusion-3-medium', prompt, image_size: '1024x1024' })
-                      });
-                      if (imgRes.ok) {
-                        const imgData = await imgRes.json();
-                        if (imgData.images && imgData.images[0]) {
-                          imageUrl = imgData.images[0].url;
-                        }
-                      }
-                      if (!imageUrl) {
-                        try {
-                          const zRes = await fetch('https://zimage.run/api/v1/generate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt, width: 1024, height: 1024 })
-                          });
-                          if (zRes.ok) {
-                            const zData = await zRes.json();
-                            if (zData.image_url) imageUrl = zData.image_url;
-                          }
-                        } catch (zErr) {}
-                      }
-                      if (imageUrl) {
-                        content = content.replace(match, `\n![${prompt}](${imageUrl})\n`);
-                      } else {
-                        content = content.replace(match, '');
-                      }
-                    } catch (imgErr) {
-                      content = content.replace(match, '');
-                    }
-                    await new Promise(r => setTimeout(r, 500));
-                  }
-                }
-                
-                const tempSlug = 'temp-' + Date.now();
-                // 获取idea的category_id作为文章分类
-                const idea = await DB.prepare('SELECT category_id FROM ideas WHERE id = ?').bind(task.related_idea_id).first();
-                const ideaCategoryId = idea?.category_id || null;
-                const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status, category_id) VALUES (?, ?, ?, ?, ?, ?)').bind('AI生成文章', content, userId, tempSlug, 'pending_review', ideaCategoryId).run();
-                const articleId = tempResult.meta.last_row_id;
-                const slug = generateSlug('AI生成文章', articleId);
-                await DB.prepare('UPDATE articles SET slug = ? WHERE id = ?').bind(slug, articleId).run();
-                await DB.prepare('UPDATE ideas SET status = ?, article_id = ? WHERE id = ?').bind('done', articleId, task.related_idea_id).run();
-              }
-            } else if (task.task_type === 'fix_article') {
-              // 获取需要修复的文章和评论
-              const article = await DB.prepare('SELECT * FROM articles WHERE id = ?').bind(task.related_article_id).first();
-              const comments = await DB.prepare('SELECT * FROM comments WHERE article_id = ? AND fixed = 0 AND issue_type IS NOT NULL').bind(task.related_article_id).all();
-              
-              if (article && comments.results?.length > 0) {
-                const issues = comments.results.map(c => `[${c.issue_type}]: ${c.content}`).join('\n');
-                const apiBase = 'https://api.siliconflow.cn/v1';
-                const aiRes = await fetch(`${apiBase}/chat/completions`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${deepseekKey}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    model: 'deepseek-ai/DeepSeek-V3',
-                    messages: [
-                      { role: 'system', content: '你是一个文章编辑，根据用户反馈修改文章。输出JSON: {content: 修改后的文章}' },
-                      { role: 'user', content: `文章：\n${article.content}\n\n反馈：\n${issues}\n\n请修改文章` }
-                    ]
-                  })
-                });
-                
-                const aiData = await aiRes.json();
-                if (aiData.choices?.[0]?.message?.content) {
-                  const jsonMatch = aiData.choices[0].message.content.match(/\{[\s\S]*\}/);
-                  if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    await DB.prepare('UPDATE articles SET content = ?, status = ? WHERE id = ?').bind(parsed.content, 'pending_review', article.id).run();
-                    for (const c of comments.results) {
-                      await DB.prepare('UPDATE comments SET fixed = 1 WHERE id = ?').bind(c.id).run();
-                    }
-                    results.fixed++;
-                  }
-                }
-              }
-            }
-            
-            await DB.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id = ?`).bind(task.id).run();
-            results.processed++;
-          }
-        } catch (aiError) {
-          console.error('AI处理错误:', aiError);
-          // AI处理失败，不影响整体返回
-        }
-
-        return json({ success: true, data: results });
       }
 
       return error('API不存在', 404);

@@ -246,37 +246,6 @@ const api = {
     });
   },
 
-  // ========== 待办任务相关 ==========
-
-  // 获取待办列表
-  async getTasks(params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return this.request(`/tasks${query ? '?' + query : ''}`);
-  },
-
-  // 创建待办
-  async createTask(data) {
-    return this.request('/tasks', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-
-  // 更新待办
-  async updateTask(id, data) {
-    return this.request(`/task/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
-  },
-
-  // 删除待办
-  async deleteTask(id) {
-    return this.request(`/task/${id}`, {
-      method: 'DELETE'
-    });
-  },
-
   // ========== AI相关 ==========
 
   // AI生成文章

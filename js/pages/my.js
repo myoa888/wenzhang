@@ -46,10 +46,6 @@ class MyPage extends Page {
             <div class="stat-value" id="ideaCount">-</div>
             <div class="stat-label">创意</div>
           </div>
-          <div class="stat-item">
-            <div class="stat-value" id="taskCount">-</div>
-            <div class="stat-label">待办</div>
-          </div>
         </div>
         
         <!-- 功能菜单 -->
@@ -62,12 +58,6 @@ class MyPage extends Page {
           <div class="menu-item" onclick="App.navigate('ideas')">
             <div class="menu-icon menu-icon-purple">💡</div>
             <span class="menu-text">我的创意</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" onclick="App.navigate('tasks')">
-            <div class="menu-icon menu-icon-orange">✅</div>
-            <span class="menu-text">待办任务</span>
-            <span class="menu-badge" id="pendingBadge" style="display:none;">0</span>
             <span class="menu-arrow">›</span>
           </div>
         </div>
@@ -111,7 +101,6 @@ class MyPage extends Page {
   mounted() {
     if (this.getUser()) {
       this.loadStats();
-      this.loadPendingCount();
     }
   }
 
@@ -128,20 +117,6 @@ class MyPage extends Page {
       if (res && res.articles) {
         document.getElementById('articleCount').textContent = res.articles?.published || 0;
         document.getElementById('ideaCount').textContent = res.ideas?.total || 0;
-        document.getElementById('taskCount').textContent = res.tasks?.pending || 0;
-      }
-    } catch (e) {}
-  }
-
-  async loadPendingCount() {
-    try {
-      const res = await api.get('/tasks?status=pending');
-      const pendingTasks = res?.data || res || [];
-      const count = pendingTasks.length || 0;
-      const badge = document.getElementById('pendingBadge');
-      if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'block';
       }
     } catch (e) {}
   }
