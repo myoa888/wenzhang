@@ -192,6 +192,12 @@ export default {
         for (const sql of INIT_TABLES) {
           await env.DB.prepare(sql).run();
         }
+        // 兼容旧表：为已存在的 ideas 表添加 category_id 列
+        try {
+          await env.DB.prepare('ALTER TABLE ideas ADD COLUMN category_id INTEGER').run();
+        } catch (e) {
+          // 列已存在时会报错，忽略
+        }
       } catch (e) {
         console.error('数据库初始化失败:', e);
       }
