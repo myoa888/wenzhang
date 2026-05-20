@@ -450,8 +450,17 @@ export default {
     if (path === '/ai/generate' && method === 'POST') {
       const user = await verifyToken(token);
       if (!user) return error('需要登录', 401);
-      const { idea_id, idea_content, category_id, image_prompts } = body;
+      const { idea_id, idea_content, image_prompts } = body;
       if (!idea_content) return error('请提供创意内容');
+
+      // 如果提供了idea_id，从数据库获取category_id
+      let category_id = null;
+      if (idea_id) {
+        const idea = await DB.prepare('SELECT category_id FROM ideas WHERE id = ? AND user_id = ?').bind(idea_id, user.user_id).first();
+        if (idea) {
+          category_id = idea.category_id;
+        }
+      }
 
       try {
         // 获取用户 AI 配置
@@ -1565,7 +1574,10 @@ ${issues}
               if (aiData.choices?.[0]?.message?.content) {
                 const content = aiData.choices[0].message.content;
                 const tempSlug = 'temp-' + Date.now();
-                const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind('AI生成文章', content, userId, tempSlug, 'pending_review').run();
+                // 获取idea的category_id作为文章分类
+                const idea = await DB.prepare('SELECT category_id FROM ideas WHERE id = ?').bind(task.related_idea_id).first();
+                const ideaCategoryId = idea?.category_id || null;
+                const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status, category_id) VALUES (?, ?, ?, ?, ?, ?)').bind('AI生成文章', content, userId, tempSlug, 'pending_review', ideaCategoryId).run();
                 const articleId = tempResult.meta.last_row_id;
                 const slug = generateSlug('AI生成文章', articleId);
                 await DB.prepare('UPDATE articles SET slug = ? WHERE id = ?').bind(slug, articleId).run();
