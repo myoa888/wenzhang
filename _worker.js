@@ -248,39 +248,55 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
-    // Image/File upload (multipart form data) — 使用R2存储
+    // Image/File upload (multipart form data) — 优先使用R2存储，无R2时降级为base64内嵌
     if (path === '/upload' && method === 'POST') {
       const user = await verifyToken(token);
       if (!user) return error('需要登录', 401);
-      
+
       const contentType = request.headers.get('content-type') || '';
       if (!contentType.includes('multipart/form-data')) {
         return error('需要上传文件', 400);
       }
-      
-      if (!env.ASSETS_BUCKET) {
-        return error('存储服务未配置', 503);
-      }
-      
+
       try {
         const formData = await request.formData();
         const file = formData.get('image') || formData.get('file');
         if (!file) return error('未找到文件', 400);
-        
+
         const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
         const ext = file.name.split('.').pop() || 'png';
         const mimeType = file.type || `image/${ext}`;
         const originalName = file.name;
+        const size = buffer.byteLength;
+
+        // 限制上传大小（R2也建议限制）
+        if (size > 5 * 1024 * 1024) {
+          return error('文件大小超过5MB限制', 413);
+        }
+
+        let storedUrl;
         const filename = `uploads/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-        
-        await env.ASSETS_BUCKET.put(filename, buffer, { httpMetadata: { contentType: mimeType } });
-        const storedUrl = `${url.origin}/files/${filename}`;
-        
+
+        if (env.ASSETS_BUCKET) {
+          // 使用 R2 存储
+          await env.ASSETS_BUCKET.put(filename, buffer, { httpMetadata: { contentType: mimeType } });
+          storedUrl = `${url.origin}/files/${filename}`;
+        } else {
+          // 无R2降级：小图片(<500KB)用base64内嵌，大图片提示配置R2
+          if (size > 500 * 1024) {
+            return error('图片大于500KB，请先配置 R2 存储服务。建议前往 Cloudflare 控制台创建 R2 Bucket 并绑定 ASSETS_BUCKET', 503);
+          }
+          // base64 Data URL（直接嵌入文章，无需外部存储）
+          const base64 = btoa(String.fromCharCode(...bytes));
+          storedUrl = `data:${mimeType};base64,${base64}`;
+        }
+
         // 记录到附件表
         await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-          .bind(user.user_id, filename, originalName, mimeType, buffer.byteLength, filename, storedUrl).run();
-          
-        return json({ url: storedUrl, filename, originalName, size: buffer.byteLength });
+          .bind(user.user_id, filename, originalName, mimeType, size, env.ASSETS_BUCKET ? filename : 'base64-inline', storedUrl).run();
+
+        return json({ url: storedUrl, filename, originalName, size });
       } catch (e) {
         return error('上传失败: ' + e.message, 500);
       }
