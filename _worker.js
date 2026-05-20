@@ -137,6 +137,19 @@ const INIT_TABLES = [
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME
   )`,
+  // AI 配置表
+  `CREATE TABLE IF NOT EXISTS ai_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    provider TEXT DEFAULT 'siliconflow',
+    model TEXT DEFAULT 'deepseek-ai/DeepSeek-V3',
+    api_key TEXT,
+    api_base TEXT DEFAULT 'https://api.siliconflow.cn/v1',
+    temperature REAL DEFAULT 0.7,
+    max_tokens INTEGER DEFAULT 2000,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`,
   // 文章审核历史表
   `CREATE TABLE IF NOT EXISTS article_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -225,6 +238,32 @@ export default {
         ).bind(token).first();
         return result?.user_id || null;
       } catch (e) { return null; }
+    }
+    
+    // 获取用户的 AI 配置
+    async function getUserAIConfig(userId) {
+      const defaultKey = 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+      
+      let config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ?').bind(userId).first();
+      
+      if (config && config.api_key) {
+        return {
+          apiKey: config.api_key,
+          model: config.model,
+          apiBase: config.api_base || 'https://api.siliconflow.cn/v1',
+          temperature: config.temperature || 0.7,
+          maxTokens: config.max_tokens || 2000
+        };
+      }
+      
+      // 使用默认配置
+      return {
+        apiKey: defaultKey,
+        model: 'deepseek-ai/DeepSeek-V3',
+        apiBase: 'https://api.siliconflow.cn/v1',
+        temperature: 0.7,
+        maxTokens: 2000
+      };
     }
 
     async function verifyToken(token) {
@@ -415,20 +454,11 @@ export default {
       if (!idea_content) return error('请提供创意内容');
 
       try {
-        // 获取 DeepSeek API key
-        const deepseekKey = env.DEEPSEEK_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
-        const qwenKey = env.QWEN_API_KEY;
-        const aiKey = deepseekKey || qwenKey;
+        // 获取用户 AI 配置
+        const aiConfig = await getUserAIConfig(user.user_id);
         
-        let model = 'deepseek-ai/DeepSeek-V3';
-        let apiBase = 'https://api.siliconflow.cn/v1';
-        
-        if (qwenKey && !deepseekKey) {
-          model = 'Qwen/Qwen2.5-72B-Instruct';
-        }
-        
-        if (!aiKey) {
-          return error('AI服务未配置，请联系管理员配置 API Key', 503);
+        if (!aiConfig.apiKey) {
+          return error('AI服务未配置，请先设置 API Key', 503);
         }
 
         // 构建生成提示词
@@ -457,19 +487,19 @@ ${idea_content}
 ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_prompts.join('\n') : ''}`;
 
         // 调用 AI 生成
-        const aiRes = await fetch(`${apiBase}/chat/completions`, {
+        const aiRes = await fetch(`${aiConfig.apiBase}/chat/completions`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${aiKey}`,
+            'Authorization': `Bearer ${aiConfig.apiKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model,
+            model: aiConfig.model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.7
+            temperature: aiConfig.temperature
           })
         });
 
@@ -528,7 +558,7 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
         }
 
         // 记录生成历史
-        await DB.prepare(`INSERT INTO ai_generations (idea_id, article_id, user_id, prompt, model, result, status) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, articleId, user.user_id, idea_content, model, content, 'success').run();
+        await DB.prepare(`INSERT INTO ai_generations (idea_id, article_id, user_id, prompt, model, result, status) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, articleId, user.user_id, idea_content, aiConfig.model, content, 'success').run();
 
         return json({ 
           success: true, 
@@ -539,7 +569,7 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
       } catch (e) {
         // 记录失败（保护式写入，避免二次异常）
         try {
-          await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, user.user_id, idea_content, model || 'unknown', '', 'failed', e.message).run();
+          await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, user.user_id, idea_content, aiConfig.model, '', 'failed', e.message).run();
         } catch (dbErr) {
           console.error('记录AI生成失败日志时出错:', dbErr);
         }
@@ -559,20 +589,11 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
         return json({ success: true, message: '没有待生成的内容', results: [] }, '没有待生成的内容');
       }
 
-      // 获取 DeepSeek API key
-      const deepseekKey = env.DEEPSEEK_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
-      const qwenKey = env.QWEN_API_KEY;
-      const aiKey = deepseekKey || qwenKey;
+      // 获取用户 AI 配置
+      const aiConfig = await getUserAIConfig(user.user_id);
       
-      let model = 'deepseek-ai/DeepSeek-V3';
-      let apiBase = 'https://api.siliconflow.cn/v1';
-      
-      if (qwenKey && !deepseekKey) {
-        model = 'Qwen/Qwen2.5-72B-Instruct';
-      }
-      
-      if (!aiKey) {
-        return error('AI服务未配置，请联系管理员配置 API Key', 503);
+      if (!aiConfig.apiKey) {
+        return error('AI服务未配置，请先设置 API Key', 503);
       }
 
       const systemPrompt = `你是一个专业的自媒体文章写作专家。请根据用户提供的创意想法，生成一篇高质量的自媒体文章。
@@ -608,19 +629,19 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
 ${idea.content}`;
 
           // 调用 AI 生成
-          const aiRes = await fetch(`${apiBase}/chat/completions`, {
+          const aiRes = await fetch(`${aiConfig.apiBase}/chat/completions`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${aiKey}`,
+              'Authorization': `Bearer ${aiConfig.apiKey}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model,
+              model: aiConfig.model,
               messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
               ],
-              temperature: 0.7
+              temperature: aiConfig.temperature
             })
           });
 
@@ -676,7 +697,7 @@ ${idea.content}`;
           await DB.prepare('UPDATE ideas SET status = ?, article_id = ? WHERE id = ?').bind('done', articleId, idea.id).run();
 
           // 记录生成历史
-          await DB.prepare(`INSERT INTO ai_generations (idea_id, article_id, user_id, prompt, model, result, status) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, articleId, user.user_id, idea.content, model, content, 'success').run();
+          await DB.prepare(`INSERT INTO ai_generations (idea_id, article_id, user_id, prompt, model, result, status) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, articleId, user.user_id, idea.content, aiConfig.model, content, 'success').run();
 
           results.push({ idea_id: idea.id, success: true, article_id: articleId, title: parsed.title });
           successCount++;
@@ -686,7 +707,7 @@ ${idea.content}`;
           
           // 记录失败
           try {
-            await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, user.user_id, idea.content, model, '', 'failed', e.message).run();
+            await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, user.user_id, idea.content, aiConfig.model, '', 'failed', e.message).run();
           } catch (dbErr) {
             console.error('记录AI生成失败日志时出错:', dbErr);
           }
@@ -877,6 +898,100 @@ ${issues}
           tags: tags?.c || 0,
           errors: recentErrors.results || []
         });
+      }
+
+      // ========== AI 配置 API ==========
+      // 获取 AI 配置
+      if (path === '/ai/config' && method === 'GET') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        
+        let config = await DB.prepare('SELECT * FROM ai_config WHERE user_id = ?').bind(user.user_id).first();
+        
+        // 如果没有配置，返回默认配置（使用内置 Key）
+        if (!config) {
+          return json({
+            success: true,
+            data: {
+              provider: 'siliconflow',
+              model: 'deepseek-ai/DeepSeek-V3',
+              api_key: '', // 不返回实际 Key
+              api_base: 'https://api.siliconflow.cn/v1',
+              temperature: 0.7,
+              max_tokens: 2000,
+              is_default: true
+            }
+          });
+        }
+        
+        // 返回配置（不暴露完整 API Key）
+        return json({
+          success: true,
+          data: {
+            provider: config.provider,
+            model: config.model,
+            api_key: config.api_key ? '****' + config.api_key.slice(-4) : '',
+            api_base: config.api_base,
+            temperature: config.temperature,
+            max_tokens: config.max_tokens,
+            is_default: false
+          }
+        });
+      }
+      
+      // 保存 AI 配置
+      if (path === '/ai/config' && method === 'POST') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        
+        const { provider, model, api_key, api_base, temperature, max_tokens } = body;
+        
+        if (!provider || !model) {
+          return error('提供商和模型不能为空');
+        }
+        
+        // 检查是否使用默认配置（空 API Key）
+        const existing = await DB.prepare('SELECT id, api_key FROM ai_config WHERE user_id = ?').bind(user.user_id).first();
+        
+        if (api_key && api_key.startsWith('****')) {
+          // 用户没有修改 Key，保持原有 Key
+          const keepKey = existing?.api_key;
+          if (existing) {
+            await DB.prepare(`
+              UPDATE ai_config SET provider = ?, model = ?, api_key = ?, api_base = ?, temperature = ?, max_tokens = ?, updated_at = datetime('now')
+              WHERE user_id = ?
+            `).bind(provider, model, keepKey || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, user.user_id).run();
+          } else {
+            await DB.prepare(`
+              INSERT INTO ai_config (user_id, provider, model, api_key, api_base, temperature, max_tokens)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).bind(user.user_id, provider, model, keepKey || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000).run();
+          }
+        } else {
+          // 用户提供了新 Key 或清空了 Key
+          if (existing) {
+            await DB.prepare(`
+              UPDATE ai_config SET provider = ?, model = ?, api_key = ?, api_base = ?, temperature = ?, max_tokens = ?, updated_at = datetime('now')
+              WHERE user_id = ?
+            `).bind(provider, model, api_key || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000, user.user_id).run();
+          } else {
+            await DB.prepare(`
+              INSERT INTO ai_config (user_id, provider, model, api_key, api_base, temperature, max_tokens)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).bind(user.user_id, provider, model, api_key || null, api_base || 'https://api.siliconflow.cn/v1', temperature || 0.7, max_tokens || 2000).run();
+          }
+        }
+        
+        return success({ message: 'AI 配置已保存' }, '保存成功');
+      }
+      
+      // 删除/重置 AI 配置（恢复默认）
+      if (path === '/ai/config' && method === 'DELETE') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        
+        await DB.prepare('DELETE FROM ai_config WHERE user_id = ?').bind(user.user_id).run();
+        return success({ message: 'AI 配置已重置为默认' }, '重置成功');
       }
 
       // Categories
