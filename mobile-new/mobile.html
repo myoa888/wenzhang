@@ -211,9 +211,17 @@
                 <div class="page-header">
                     <button class="back-btn" onclick="switchSubPage('main')">‹ 返回</button>
                     <h1 class="page-title">创意管理</h1>
+                    <button class="header-btn" id="batch-gen-btn" onclick="batchGenerateIdeas()" style="color:#67c23a;">✨ 一键生成</button>
                 </div>
+                <!-- 状态筛选 -->
+                <div class="categories" id="idea-status-tabs" style="background:#fff;padding:8px 12px;border-bottom:1px solid #E5E5EA;">
+                    <button class="category-tag active" data-status="all">全部</button>
+                    <button class="category-tag" data-status="pending">待生成</button>
+                    <button class="category-tag" data-status="done">已完成</button>
+                </div>
+                <!-- 分类筛选 -->
                 <div class="categories" id="idea-categories">
-                    <button class="category-tag active" data-category="all">全部</button>
+                    <button class="category-tag active" data-category="all">全部分类</button>
                     <button class="category-tag" data-category="产品">产品</button>
                     <button class="category-tag" data-category="工具">工具</button>
                     <button class="category-tag" data-category="内容">内容</button>
@@ -258,6 +266,7 @@
             currentSubPage: 'main',
             currentCategory: 'all',
             ideaCategory: 'all',
+            ideaStatus: 'all',
             articles: [],
             loading: false,
             page: 1,
@@ -520,19 +529,31 @@
         // 初始化创意页面
         function initIdeasPage() {
             const STORAGE_KEY = 'wenzhang_ideas';
+            State.ideaStatus = 'all';
+            State.ideaCategory = 'all';
             
-            // 初始化模拟数据
+            // 初始化模拟数据（带状态）
             if (!localStorage.getItem(STORAGE_KEY)) {
                 const mockIdeas = [
-                    { id: 1, title: '智能家居控制系统', category: '产品', excerpt: '用AI打造更智能、更便捷的家居体验', date: '3天前' },
-                    { id: 2, title: '个人知识管理App', category: '工具', excerpt: '帮助用户高效管理和回顾所学知识', date: '1周前' },
-                    { id: 3, title: '在线协作白板', category: '工具', excerpt: '支持多人实时协作的在线白板工具', date: '2周前' },
-                    { id: 4, title: '短视频脚本生成器', category: '内容', excerpt: 'AI辅助创作短视频脚本，提高创作效率', date: '5天前' }
+                    { id: 1, title: '智能家居控制系统', category: '产品', excerpt: '用AI打造更智能、更便捷的家居体验', date: '3天前', status: 'pending' },
+                    { id: 2, title: '个人知识管理App', category: '工具', excerpt: '帮助用户高效管理和回顾所学知识', date: '1周前', status: 'done' },
+                    { id: 3, title: '在线协作白板', category: '工具', excerpt: '支持多人实时协作的在线白板工具', date: '2周前', status: 'pending' },
+                    { id: 4, title: '短视频脚本生成器', category: '内容', excerpt: 'AI辅助创作短视频脚本，提高创作效率', date: '5天前', status: 'pending' }
                 ];
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(mockIdeas));
             }
 
             renderIdeas();
+            
+            // 状态筛选切换
+            $$('#idea-status-tabs .category-tag').forEach(tag => {
+                tag.onclick = () => {
+                    $$('#idea-status-tabs .category-tag').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                    State.ideaStatus = tag.dataset.status;
+                    renderIdeas();
+                };
+            });
             
             // 分类切换
             $$('#idea-categories .category-tag').forEach(tag => {
@@ -545,6 +566,14 @@
             });
         }
 
+        // 获取状态标签
+        function getStatusTag(status) {
+            if (status === 'done') {
+                return '<span style="background:#67c23a;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">已完成</span>';
+            }
+            return '<span style="background:#e6a23c;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">待生成</span>';
+        }
+
         // 渲染创意列表
         function renderIdeas() {
             const STORAGE_KEY = 'wenzhang_ideas';
@@ -553,6 +582,12 @@
 
             let ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             
+            // 按状态筛选
+            if (State.ideaStatus !== 'all') {
+                ideas = ideas.filter(i => i.status === State.ideaStatus);
+            }
+            
+            // 按分类筛选
             if (State.ideaCategory !== 'all') {
                 ideas = ideas.filter(i => i.category === State.ideaCategory);
             }
@@ -561,15 +596,18 @@
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">💡</div>
-                        <p>暂无${State.ideaCategory === 'all' ? '' : State.ideaCategory}创意</p>
+                        <p>暂无符合条件的创意</p>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = ideas.map(idea => `
-                <div class="article-item">
-                    <div class="article-title">${escapeHtml(idea.title)}</div>
+                <div class="article-item" onclick="showIdeaDetailModal(${idea.id})">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <div class="article-title" style="flex:1;margin:0;">${escapeHtml(idea.title)}</div>
+                        ${getStatusTag(idea.status)}
+                    </div>
                     <div class="article-meta">
                         <span class="article-category">${escapeHtml(idea.category)}</span>
                         <span>${idea.date}</span>
@@ -578,6 +616,105 @@
                 </div>
             `).join('');
         }
+
+        // 显示创意详情弹窗
+        window.showIdeaDetailModal = function(id) {
+            const STORAGE_KEY = 'wenzhang_ideas';
+            const ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const idea = ideas.find(i => i.id === id);
+            if (!idea) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay show';
+            overlay.innerHTML = `
+                <div class="modal-content" style="padding:20px;max-width:90%;text-align:left;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <div style="flex:1;font-size:17px;font-weight:600;">${escapeHtml(idea.title)}</div>
+                        <button onclick="this.closest('.modal-overlay').remove()" style="background:none;border:none;font-size:20px;color:#8E8E93;padding:0 8px;">×</button>
+                    </div>
+                    <div style="margin-bottom:12px;">${getStatusTag(idea.status)} <span class="article-category">${escapeHtml(idea.category)}</span></div>
+                    <div style="font-size:15px;line-height:1.6;color:#333;margin-bottom:16px;">${escapeHtml(idea.excerpt || '暂无描述')}</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        ${idea.status !== 'done' ? `<button class="modal-btn modal-btn-confirm" onclick="generateArticleForIdea(${idea.id})" style="flex:1;">🤖 AI生成文章</button>` : `<a href="article.html?id=${idea.article_id || 1}" class="modal-btn modal-btn-confirm" style="flex:1;text-decoration:none;text-align:center;">📖 查看文章</a>`}
+                        <button class="modal-btn modal-btn-cancel" onclick="deleteIdeaFromList(${idea.id})" style="flex:1;">🗑️ 删除</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        };
+
+        // 为单个创意生成文章
+        window.generateArticleForIdea = function(id) {
+            const STORAGE_KEY = 'wenzhang_ideas';
+            let ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const idea = ideas.find(i => i.id === id);
+            if (!idea) return;
+
+            // 模拟生成
+            idea.status = 'done';
+            idea.article_id = Date.now();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+
+            document.querySelector('.modal-overlay')?.remove();
+            showToast(`"${idea.title}" 文章生成成功！`);
+            renderIdeas();
+        };
+
+        // 删除创意
+        window.deleteIdeaFromList = function(id) {
+            if (!confirm('确定删除这个创意？')) return;
+            const STORAGE_KEY = 'wenzhang_ideas';
+            let ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            ideas = ideas.filter(i => i.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+            
+            document.querySelector('.modal-overlay')?.remove();
+            showToast('已删除');
+            renderIdeas();
+        };
+
+        // 一键生成全部待生成的创意
+        window.batchGenerateIdeas = function() {
+            const STORAGE_KEY = 'wenzhang_ideas';
+            let ideas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const pending = ideas.filter(i => i.status !== 'done');
+            
+            if (pending.length === 0) {
+                showToast('没有待生成的创意');
+                return;
+            }
+            
+            if (!confirm(`确定要生成全部 ${pending.length} 条待生成内容吗？\nAI会逐个生成，请耐心等待...`)) return;
+            
+            const btn = $('batch-gen-btn');
+            btn.disabled = true;
+            btn.textContent = '生成中...';
+            showToast('开始批量生成，请耐心等待...');
+            
+            // 模拟逐个生成
+            let index = 0;
+            const generateNext = () => {
+                if (index >= pending.length) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
+                    btn.disabled = false;
+                    btn.textContent = '✨ 一键生成';
+                    showToast(`批量生成完成！共 ${pending.length} 条`);
+                    renderIdeas();
+                    return;
+                }
+                
+                const idea = ideas.find(i => i.id === pending[index].id);
+                if (idea) {
+                    idea.status = 'done';
+                    idea.article_id = Date.now();
+                }
+                index++;
+                setTimeout(generateNext, 500);
+            };
+            
+            generateNext();
+        };
 
         // 保存搜索历史
         function saveSearchHistory(keyword) {
