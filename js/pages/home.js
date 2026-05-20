@@ -75,7 +75,12 @@ class HomePage extends Page {
 
     try {
       const res = await api.get(`/articles?limit=20&page=${this.page}`);
-      const articles = res.articles || [];
+      console.log('articles res:', res);
+
+      let articles = [];
+      if (Array.isArray(res)) articles = res;
+      else if (res && Array.isArray(res.articles)) articles = res.articles;
+      else if (res && Array.isArray(res.data)) articles = res.data;
 
       if (articles.length === 0 && this.page === 1) {
         list.innerHTML = '';
@@ -95,7 +100,7 @@ class HomePage extends Page {
       this.page++;
     } catch (e) {
       console.error('加载失败:', e);
-      list.innerHTML = '<div class="page-error">加载失败，请重试</div>';
+      list.innerHTML = '<div class="page-error">加载失败: ' + (e.message || '') + '</div>';
     } finally {
       this.loading = false;
     }

@@ -160,6 +160,8 @@ const INIT_TABLES = [
      SELECT user_id, provider, model, api_key, api_base, temperature, max_tokens
      FROM ai_config WHERE id IN (SELECT min(id) FROM ai_config GROUP BY user_id)
    )`,
+  // 修复：添加缺失的 is_default 列（忽略已存在的错误）
+  `ALTER TABLE ai_config ADD COLUMN is_default INTEGER DEFAULT 0`,
   // 文章审核历史表
   `CREATE TABLE IF NOT EXISTS article_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

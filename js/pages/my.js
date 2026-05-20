@@ -136,7 +136,8 @@ class MyPage extends Page {
   async loadPendingCount() {
     try {
       const res = await api.get('/tasks?status=pending');
-      const count = res?.length || 0;
+      const pendingTasks = res?.data || res || [];
+      const count = pendingTasks.length || 0;
       const badge = document.getElementById('pendingBadge');
       if (count > 0) {
         badge.textContent = count;

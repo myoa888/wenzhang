@@ -37,7 +37,12 @@ class TasksPage extends Page {
 
     try {
       const res = await api.get('/tasks');
-      const tasks = res || [];
+      console.log('tasks res:', res);
+
+      let tasks = [];
+      if (Array.isArray(res)) tasks = res;
+      else if (res && Array.isArray(res.data)) tasks = res.data;
+      else if (res && res.tasks) tasks = res.tasks;
 
       if (tasks.length === 0) {
         list.innerHTML = '';
@@ -60,7 +65,7 @@ class TasksPage extends Page {
       list.innerHTML = html;
     } catch (e) {
       console.error('加载失败:', e);
-      list.innerHTML = '<div class="page-error">加载失败</div>';
+      list.innerHTML = '<div class="page-error">加载失败: ' + (e.message || '') + '</div>';
     }
   }
 

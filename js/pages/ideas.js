@@ -55,7 +55,17 @@ class IdeasPage extends Page {
 
     try {
       const res = await api.get('/ideas' + (status ? `?status=${status}` : ''));
-      const ideas = res || [];
+      console.log('ideas res:', res);
+
+      let ideas = [];
+      if (Array.isArray(res)) {
+        ideas = res;
+      } else if (res && Array.isArray(res.data)) {
+        ideas = res.data;
+      } else if (res && res.ideas) {
+        ideas = res.ideas;
+      }
+      console.log('ideas parsed:', ideas);
 
       if (ideas.length === 0) {
         list.innerHTML = '';
@@ -64,10 +74,19 @@ class IdeasPage extends Page {
       }
       document.getElementById('emptyState').style.display = 'none';
 
-      list.innerHTML = ideas.map(i => Components.ideaCard(i)).join('');
+      const html = ideas.map((i, idx) => {
+        try {
+          return Components.ideaCard(i);
+        } catch (err) {
+          console.error('渲染第' + idx + '条失败:', err, i);
+          return '<div class="page-error">渲染失败</div>';
+        }
+      }).join('');
+
+      list.innerHTML = html;
     } catch (e) {
       console.error('加载失败:', e);
-      list.innerHTML = '<div class="page-error">加载失败</div>';
+      list.innerHTML = '<div class="page-error">加载失败: ' + (e.message || '未知错误') + '</div>';
     }
   }
 

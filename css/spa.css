@@ -4,9 +4,10 @@
 
 /* 页面容器 */
 #page-container {
-  padding: 12px;
-  padding-bottom: 70px;
+  padding: env(safe-area-inset-top, 12px) 12px 70px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
   min-height: 100vh;
+  padding-top: max(12px, env(safe-area-inset-top));
 }
 
 /* ========== 通用 ========== */
