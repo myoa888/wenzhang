@@ -58,7 +58,9 @@
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           alert('登录成功！');
-          window.location.href = 'manage.html';
+          const redirect = sessionStorage.getItem('redirect_after_login');
+          sessionStorage.removeItem('redirect_after_login');
+          window.location.href = redirect || 'manage.html';
         } else {
           alert(res.error || '登录失败');
         }

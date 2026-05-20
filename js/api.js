@@ -23,7 +23,22 @@ const api = {
         headers
       });
 
-      return await res.json();
+      const data = await res.json();
+
+      // 未登录统一处理
+      if (!data.success && (data.error === '需要登录' || data.error?.includes('登录') || res.status === 401)) {
+        localStorage.removeItem('token');
+        // 保存当前页面路径，登录后跳转回来
+        sessionStorage.setItem('redirect_after_login', window.location.href);
+        window.location.href = 'login.html';
+        return;
+      }
+
+      if (!data.success) {
+        throw data;
+      }
+
+      return data;
     } catch (e) {
       console.error('API请求失败:', e);
       throw e;
