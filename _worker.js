@@ -74,10 +74,6 @@ export default {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
     let body = {};
-    
-    if (method !== 'GET' && method !== 'HEAD') {
-      try { body = await request.json(); } catch (e) {}
-    }
 
     const DB = env.DB;
 
@@ -86,7 +82,7 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
-    // Image upload (multipart form data)
+    // Image upload (multipart form data) — must handle before body is consumed
     if (path === '/upload' && method === 'POST') {
       const user = await verifyToken(token);
       if (!user) return error('需要登录', 401);
@@ -125,6 +121,11 @@ export default {
       } catch (e) {
         return error('上传失败: ' + e.message, 500);
       }
+    }
+
+    // Parse JSON body for non-upload requests
+    if (method !== 'GET' && method !== 'HEAD') {
+      try { body = await request.json(); } catch (e) {}
     }
 
     try {
