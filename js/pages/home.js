@@ -100,10 +100,10 @@ class HomePage extends Page {
       }
 
       this.page++;
+      this.loading = false;
     } catch (e) {
       console.error('加载失败:', e);
       list.innerHTML = '<div class="page-error">加载失败: ' + (e.message || '') + '</div>';
-    } finally {
       this.loading = false;
     }
   }

@@ -91,39 +91,73 @@ class IdeasPage extends Page {
   }
 
   static async showAddModal() {
-    const sheet = Components.bottomSheet({
-      title: '新建创意',
-      content: `
-        <div class="form-group">
-          <textarea class="form-input" id="ideaContent" rows="4" placeholder="描述你的创意..."></textarea>
+    // 加载分类
+    let categoryOptions = '<option value="">请选择</option>';
+    try {
+      const cats = await api.getCategories();
+      const list = cats.success ? cats.data : (Array.isArray(cats) ? cats : []);
+      categoryOptions += list.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (e) {}
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay show';
+    modal.innerHTML = `
+      <div class="modal" style="max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <h3 class="modal-title">新建创意</h3>
+          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">分类</label>
-          <select class="form-input" id="ideaCategory">
-            <option value="">请选择</option>
-          </select>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">创意内容</label>
+            <textarea class="form-input" id="ideaContent" rows="4" placeholder="描述你的创意..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">分类</label>
+            <select class="form-input" id="ideaCategory">
+              ${categoryOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">标签（多个用逗号分隔）</label>
+            <input type="text" class="form-input" id="ideaTags" placeholder="例如：科技,生活">
+          </div>
         </div>
-      `,
-      actions: [
-        { text: '取消', class: 'btn-outline', handler: () => Components.closeBottomSheet(sheet) },
-        { text: '保存', class: 'btn-primary', handler: async () => {
-          const content = document.getElementById('ideaContent').value.trim();
-          if (!content) {
-            Components.toast('请输入创意内容');
-            return;
-          }
-          try {
-            await api.post('/ideas', { content, category_id: document.getElementById('ideaCategory').value });
-            Components.toast('创建成功');
-            Components.closeBottomSheet(sheet);
-            App.loadPage('ideas');
-          } catch (e) {
-            Components.toast('创建失败');
-          }
-        }}
-      ]
-    });
-    sheet.classList.add('show');
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">取消</button>
+          <button class="btn btn-primary" id="saveIdeaBtn">保存</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 保存按钮事件
+    modal.querySelector('#saveIdeaBtn').onclick = async () => {
+      const content = document.getElementById('ideaContent').value.trim();
+      if (!content) {
+        Components.toast('请输入创意内容');
+        return;
+      }
+      const btn = document.getElementById('saveIdeaBtn');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+      
+      try {
+        const tags = document.getElementById('ideaTags').value.trim();
+        await api.post('/ideas', { 
+          content, 
+          category_id: document.getElementById('ideaCategory').value,
+          tags 
+        });
+        Components.toast('创建成功');
+        modal.remove();
+        App.loadPage('ideas');
+      } catch (e) {
+        Components.toast('创建失败');
+        btn.disabled = false;
+        btn.textContent = '保存';
+      }
+    };
   }
 }
 
