@@ -1136,6 +1136,10 @@ ${issues}
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         const id = catMatch[1];
+        // 先把引用该分类的文章和创意的 category_id 设为 null
+        await DB.prepare('UPDATE articles SET category_id = NULL WHERE category_id = ?').bind(id).run();
+        await DB.prepare('UPDATE ideas SET category_id = NULL WHERE category_id = ?').bind(id).run();
+        // 再删除分类
         await DB.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
         return success(null, '分类删除成功');
       }
