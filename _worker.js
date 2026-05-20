@@ -1709,7 +1709,53 @@ ${issues}
               
               const aiData = await aiRes.json();
               if (aiData.choices?.[0]?.message?.content) {
-                const content = aiData.choices[0].message.content;
+                let content = aiData.choices[0].message.content;
+                
+                // 处理图片占位符 [IMAGE:描述] → 生成实际图片
+                const imageMatches = content.match(/\[IMAGE:([^\]]+)\]/g);
+                if (imageMatches && imageMatches.length > 0) {
+                  console.log(`[自动化任务] 发现 ${imageMatches.length} 个图片占位符`);
+                  for (const match of imageMatches) {
+                    const prompt = match.replace('[IMAGE:', '').replace(']', '').trim();
+                    try {
+                      let imageUrl = null;
+                      const imgApiKey = env.IMAGE_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+                      const imgRes = await fetch('https://api.siliconflow.cn/v1/image/generations', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${imgApiKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: 'stabilityai/stable-diffusion-3-medium', prompt, image_size: '1024x1024' })
+                      });
+                      if (imgRes.ok) {
+                        const imgData = await imgRes.json();
+                        if (imgData.images && imgData.images[0]) {
+                          imageUrl = imgData.images[0].url;
+                        }
+                      }
+                      if (!imageUrl) {
+                        try {
+                          const zRes = await fetch('https://zimage.run/api/v1/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt, width: 1024, height: 1024 })
+                          });
+                          if (zRes.ok) {
+                            const zData = await zRes.json();
+                            if (zData.image_url) imageUrl = zData.image_url;
+                          }
+                        } catch (zErr) {}
+                      }
+                      if (imageUrl) {
+                        content = content.replace(match, `\n![${prompt}](${imageUrl})\n`);
+                      } else {
+                        content = content.replace(match, '');
+                      }
+                    } catch (imgErr) {
+                      content = content.replace(match, '');
+                    }
+                    await new Promise(r => setTimeout(r, 500));
+                  }
+                }
+                
                 const tempSlug = 'temp-' + Date.now();
                 // 获取idea的category_id作为文章分类
                 const idea = await DB.prepare('SELECT category_id FROM ideas WHERE id = ?').bind(task.related_idea_id).first();
