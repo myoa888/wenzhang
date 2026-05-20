@@ -836,6 +836,17 @@ ${issues}
         const aiTokens = await DB.prepare('SELECT SUM(tokens_used) as t FROM ai_generations WHERE user_id = ?').bind(userId).first();
         const aiCost = await DB.prepare('SELECT SUM(cost) as t FROM ai_generations WHERE user_id = ?').bind(userId).first();
         
+        // 最近失败记录（用于显示错误）
+        const recentErrors = await DB.prepare(`
+          SELECT g.id, g.idea_id, g.prompt, g.error_message, g.created_at,
+                 i.content as idea_content
+          FROM ai_generations g
+          LEFT JOIN ideas i ON g.idea_id = i.id
+          WHERE g.user_id = ? AND g.status = 'failed'
+          ORDER BY g.created_at DESC
+          LIMIT 10
+        `).bind(userId).all();
+        
         // 分类和标签
         const categories = await DB.prepare('SELECT COUNT(*) as c FROM categories').first();
         const tags = await DB.prepare('SELECT COUNT(*) as c FROM tags').first();
@@ -863,7 +874,8 @@ ${issues}
             done: doneIdeas?.c || 0
           },
           categories: categories?.c || 0,
-          tags: tags?.c || 0
+          tags: tags?.c || 0,
+          errors: recentErrors.results || []
         });
       }
 

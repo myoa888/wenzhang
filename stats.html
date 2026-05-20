@@ -205,6 +205,65 @@
       padding: 60px 20px;
       color: #999;
     }
+    
+    .error-list {
+      background: #fff;
+      border-radius: 12px;
+      margin: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .error-list-header {
+      padding: 12px 16px;
+      background: #fef0f0;
+      border-left: 4px solid #f56c6c;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .error-list-header svg { width: 18px; height: 18px; color: #f56c6c; }
+    .error-list-header h4 { margin: 0; font-size: 14px; color: #f56c6c; }
+    .error-list-header .count { 
+      background: #f56c6c; 
+      color: #fff; 
+      font-size: 11px; 
+      padding: 2px 8px; 
+      border-radius: 10px;
+      margin-left: auto;
+    }
+    .error-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .error-item:last-child { border-bottom: none; }
+    .error-item .prompt {
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .error-item .message {
+      font-size: 12px;
+      color: #f56c6c;
+      background: #fef0f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+    .error-item .time {
+      font-size: 11px;
+      color: #999;
+    }
+    .no-error {
+      padding: 20px;
+      text-align: center;
+      color: #67c23a;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -251,7 +310,7 @@
     }
 
     function renderStats(data) {
-      const { articles, views, ai, ideas, categories, tags } = data;
+      const { articles, views, ai, ideas, categories, tags, errors } = data;
       
       // 计算用户创建 vs AI 生成的比例
       const userCreated = articles.user_created || 0;
@@ -321,6 +380,40 @@
             </div>
           </div>
         </div>
+
+        ${errors && errors.length > 0 ? `
+        <div class="error-list">
+          <div class="error-list-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h4>AI 生成失败记录</h4>
+            <span class="count">${errors.length} 条</span>
+          </div>
+          ${errors.map(err => `
+          <div class="error-item">
+            <div class="prompt">${escapeHtml(err.idea_content || err.prompt || '未知内容')}</div>
+            <div class="message">${escapeHtml(err.error_message || '未知错误')}</div>
+            <div class="time">${formatDate(err.created_at)}</div>
+          </div>
+          `).join('')}
+        </div>
+        ` : `
+        <div class="error-list">
+          <div class="error-list-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+              <line x1="9" y1="9" x2="9.01" y2="9"></line>
+              <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+            <h4>AI 生成记录</h4>
+          </div>
+          <div class="no-error">✅ 暂无失败记录，AI 生成一切顺利！</div>
+        </div>
+        `}
 
         <div class="comparison-card">
           <div class="comparison-header">
@@ -412,6 +505,19 @@
         return (num / 10000).toFixed(1) + '万';
       }
       return num || 0;
+    }
+    
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+    }
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
   </script>
 </body>
