@@ -102,30 +102,28 @@ class IdeasPage extends Page {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay show';
     modal.innerHTML = `
-      <div class="modal" style="max-height: 90vh; overflow-y: auto;">
-        <div class="modal-header">
-          <h3 class="modal-title">新建创意</h3>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+      <div class="modal-box" style="max-width: 90vw; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="margin: 0; font-size: 18px;">新建创意</h3>
+          <button style="background: none; border: none; font-size: 24px; color: #999; cursor: pointer;" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">创意内容</label>
-            <textarea class="form-input" id="ideaContent" rows="4" placeholder="描述你的创意..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">分类</label>
-            <select class="form-input" id="ideaCategory">
-              ${categoryOptions}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">标签（多个用逗号分隔）</label>
-            <input type="text" class="form-input" id="ideaTags" placeholder="例如：科技,生活">
-          </div>
+        <div class="form-group">
+          <label class="form-label">创意内容</label>
+          <textarea class="form-input" id="ideaContent" rows="4" placeholder="描述你的创意..."></textarea>
         </div>
-        <div class="modal-footer">
+        <div class="form-group">
+          <label class="form-label">分类</label>
+          <select class="form-input" id="ideaCategory">
+            ${categoryOptions}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签（多个用逗号分隔）</label>
+          <input type="text" class="form-input" id="ideaTags" placeholder="例如：科技,生活">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
           <button class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">取消</button>
-          <button class="btn btn-primary" id="saveIdeaBtn">保存</button>
+          <button class="btn btn-primary" id="saveIdeaBtn" style="flex: 1;">保存</button>
         </div>
       </div>
     `;
