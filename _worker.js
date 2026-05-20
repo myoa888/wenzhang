@@ -82,7 +82,7 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
-    // Image/File upload (multipart form data) — 支持R2存储或返回URL
+    // Image/File upload (multipart form data) — 使用R2存储
     if (path === '/upload' && method === 'POST') {
       const user = await verifyToken(token);
       if (!user) return error('需要登录', 401);
@@ -92,45 +92,29 @@ export default {
         return error('需要上传文件', 400);
       }
       
+      if (!env.ASSETS_BUCKET) {
+        return error('存储服务未配置', 503);
+      }
+      
       try {
         const formData = await request.formData();
         const file = formData.get('image') || formData.get('file');
         if (!file) return error('未找到文件', 400);
         
         const buffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
         const ext = file.name.split('.').pop() || 'png';
         const mimeType = file.type || `image/${ext}`;
         const originalName = file.name;
+        const filename = `uploads/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
         
-        // 优先使用 R2 存储
-        if (env.ASSETS_BUCKET) {
-          const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-          await env.ASSETS_BUCKET.put(filename, buffer, { httpMetadata: { contentType: mimeType } });
-          const url = `${url.origin}/files/${filename}`;
-          // 记录到附件表
-          await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(user.user_id, filename, originalName, mimeType, buffer.byteLength, filename, url).run();
-          return json({ url, filename, originalName, size: buffer.byteLength });
-        }
+        await env.ASSETS_BUCKET.put(filename, buffer, { httpMetadata: { contentType: mimeType } });
+        const storedUrl = `${url.origin}/files/${filename}`;
         
-        // 使用 imgbb 免费图床 API
-        const imgbbApiKey = env.IMGBB_API_KEY;
-        if (imgbbApiKey) {
-          const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `image=${encodeURIComponent(`data:${mimeType};base64,${base64}`)}`
-          });
-          const imgbbData = await imgbbRes.json();
-          if (imgbbData.success) {
-            // 记录到附件表
-            await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(user.user_id, imgbbData.data.filename, originalName, mimeType, buffer.byteLength, imgbbData.data.url, imgbbData.data.url).run();
-            return json({ url: imgbbData.data.url, filename: imgbbData.data.filename, originalName });
-          }
-        }
-        
-        // 如果没有配置，返回 base64（作为 data URL）
-        return json({ url: `data:${mimeType};base64,${base64}`, filename: originalName });
+        // 记录到附件表
+        await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+          .bind(user.user_id, filename, originalName, mimeType, buffer.byteLength, filename, storedUrl).run();
+          
+        return json({ url: storedUrl, filename, originalName, size: buffer.byteLength });
       } catch (e) {
         return error('上传失败: ' + e.message, 500);
       }
@@ -904,10 +888,17 @@ ${issues}
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         const attachments = await DB.prepare('SELECT * FROM attachments WHERE user_id = ? ORDER BY created_at DESC').bind(user.user_id).all();
-        return json({ success: true, data: attachments.results });
+        // 处理R2存储的URL
+        const processedResults = (attachments.results || []).map(a => {
+          if (a.storage_path && !a.url.startsWith('http')) {
+            a.url = `${url.origin}/files/${a.storage_path}`;
+          }
+          return a;
+        });
+        return json({ success: true, data: processedResults });
       }
 
-      // 下载附件
+      // 下载/查看附件
       const attachmentMatch = path.match(/^\/attachment\/(\d+)$/);
       if (attachmentMatch && method === 'GET') {
         const user = await verifyToken(token);
@@ -916,13 +907,34 @@ ${issues}
         const attachment = await DB.prepare('SELECT * FROM attachments WHERE id = ? AND user_id = ?').bind(id, user.user_id).first();
         if (!attachment) return error('附件不存在', 404);
         
-        // 如果是R2存储，生成预签名URL
-        if (env.ASSETS_BUCKET && attachment.storage_path.startsWith('/')) {
-          const url = await env.ASSETS_BUCKET.signUrl(attachment.storage_path, { expirationTtl: 3600 });
-          return json({ url, filename: attachment.original_name });
+        // R2存储：直接返回访问URL
+        if (attachment.storage_path && attachment.storage_path.startsWith('uploads/') || attachment.storage_path.startsWith('ai-images/')) {
+          return json({ url: `${url.origin}/files/${attachment.storage_path}`, filename: attachment.original_name });
         }
         
         return json({ url: attachment.url, filename: attachment.original_name });
+      }
+
+      // 删除附件
+      if (attachmentMatch && method === 'DELETE') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const id = attachmentMatch[1];
+        const attachment = await DB.prepare('SELECT * FROM attachments WHERE id = ? AND user_id = ?').bind(id, user.user_id).first();
+        if (!attachment) return error('附件不存在', 404);
+        
+        // 删除R2中的文件
+        if (env.ASSETS_BUCKET && attachment.storage_path.startsWith('uploads/') || attachment.storage_path.startsWith('ai-images/')) {
+          try {
+            await env.ASSETS_BUCKET.delete(attachment.storage_path);
+          } catch (e) {
+            console.error('删除R2文件失败:', e);
+          }
+        }
+        
+        // 删除数据库记录
+        await DB.prepare('DELETE FROM attachments WHERE id = ?').bind(id).run();
+        return success(null, '附件已删除');
       }
 
       // ========== AI 自动化检测 API (供 Cron 或登录用户调用) ==========
