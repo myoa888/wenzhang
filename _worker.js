@@ -677,7 +677,7 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
       const pendingIdeas = await DB.prepare('SELECT id, content, category_id, tags FROM ideas WHERE status = ? AND user_id = ?').bind('pending', user.user_id).all();
       
       if (pendingIdeas.results.length === 0) {
-        return json({ success: true, message: '没有待生成的内容', results: [] }, '没有待生成的内容');
+        return json({ success: true, message: '没有待生成的内容', results: [] });
       }
 
       // 获取用户 AI 配置
@@ -964,7 +964,7 @@ ${issues}
           }
         }
 
-        return json({ success: true, article_id }, '文章已修复');
+        return json({ success: true, article_id });
       } catch (e) {
         return error('修复失败: ' + e.message, 500);
       }
