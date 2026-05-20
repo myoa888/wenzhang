@@ -69,6 +69,7 @@ class HomePage extends Page {
     this.loading = true;
 
     const list = document.getElementById('articleList');
+    const emptyState = document.getElementById('emptyState');
     if (refresh) {
       list.innerHTML = '<div class="page-loading"><div class="spinner"></div><span>加载中...</span></div>';
     }
@@ -84,10 +85,11 @@ class HomePage extends Page {
 
       if (articles.length === 0 && this.page === 1) {
         list.innerHTML = '';
-        document.getElementById('emptyState').style.display = 'flex';
+        if (emptyState) emptyState.style.display = 'flex';
+        this.loading = false;
         return;
       }
-      document.getElementById('emptyState').style.display = 'none';
+      if (emptyState) emptyState.style.display = 'none';
 
       const html = articles.map(a => Components.articleCard(a)).join('');
       
