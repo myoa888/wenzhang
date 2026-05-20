@@ -349,6 +349,50 @@ export default {
         return success(null, '文章删除成功');
       }
 
+      // ========== 评论相关 ==========
+
+      // 获取文章评论列表
+      const commentsMatch = path.match(/^\/comments\/(\d+)$/);
+      if (commentsMatch && method === 'GET') {
+        const articleId = commentsMatch[1];
+        const comments = await DB.prepare(`
+          SELECT c.*, u.username, u.avatar
+          FROM comments c
+          JOIN users u ON c.user_id = u.id
+          WHERE c.article_id = ? AND c.status = 'approved'
+          ORDER BY c.created_at DESC
+        `).bind(articleId).all();
+        return json({ success: true, data: comments.results });
+      }
+
+      // 发表评论
+      if (path === '/comments' && method === 'POST') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const { article_id, content, parent_id } = body;
+        if (!article_id || !content || !content.trim()) return error('文章ID和评论内容不能为空');
+        const article = await DB.prepare('SELECT id FROM articles WHERE id = ?').bind(article_id).first();
+        if (!article) return error('文章不存在', 404);
+        const result = await DB.prepare('INSERT INTO comments (article_id, user_id, parent_id, content, status) VALUES (?, ?, ?, ?, ?)').bind(article_id, user.user_id, parent_id || null, content.trim(), 'approved').run();
+        return success({ id: result.meta.last_row_id }, '评论发表成功');
+      }
+
+      // 删除评论
+      const commentDeleteMatch = path.match(/^\/comments\/(\d+)$/);
+      if (commentDeleteMatch && method === 'DELETE') {
+        const user = await verifyToken(token);
+        if (!user) return error('需要登录', 401);
+        const commentId = commentDeleteMatch[1];
+        const comment = await DB.prepare('SELECT c.*, a.user_id as article_author_id FROM comments c JOIN articles a ON c.article_id = a.id WHERE c.id = ?').bind(commentId).first();
+        if (!comment) return error('评论不存在', 404);
+        // 评论作者或文章作者可删除
+        if (comment.user_id !== user.user_id && comment.article_author_id !== user.user_id) {
+          return error('无权删除此评论', 403);
+        }
+        await DB.prepare('DELETE FROM comments WHERE id = ?').bind(commentId).run();
+        return success(null, '评论删除成功');
+      }
+
       return error('API不存在', 404);
     } catch (e) {
       console.error(e);

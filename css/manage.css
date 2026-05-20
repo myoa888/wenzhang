@@ -88,15 +88,37 @@
 }
 
 /* 表格 */
+.articles-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .table {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
 }
 
 .table th, .table td {
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table td:first-child {
+  white-space: normal;
+  max-width: 280px;
+  min-width: 180px;
+}
+
+.table td:first-child a {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table th {
@@ -118,6 +140,7 @@
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .status-badge.published {
@@ -138,6 +161,7 @@
   font-size: inherit;
   padding: 0;
   margin-right: 0.75rem;
+  white-space: nowrap;
 }
 
 .btn-link:hover {

@@ -149,5 +149,27 @@ const api = {
   // 获取统计数据
   async getStats() {
     return this.request('/stats');
+  },
+
+  // ========== 评论相关 ==========
+
+  // 获取文章评论列表
+  async getComments(articleId) {
+    return this.request(`/comments/${articleId}`);
+  },
+
+  // 发表评论
+  async createComment(data) {
+    return this.request('/comments', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // 删除评论
+  async deleteComment(commentId) {
+    return this.request(`/comments/${commentId}`, {
+      method: 'DELETE'
+    });
   }
 };

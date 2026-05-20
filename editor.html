@@ -11,7 +11,7 @@
 <body>
   <header class="header editor-header">
     <div class="container header-content">
-      <a href="manage.html" class="logo">← 返回管理</a>
+      <a href="manage.html" class="logo">返回管理</a>
       <div class="editor-actions">
         <button onclick="saveDraft()" class="btn">保存草稿</button>
         <button onclick="publishArticle()" class="btn btn-primary">发布</button>
@@ -278,30 +278,27 @@
     // 加载已有文章
     async function loadArticle(id) {
       try {
-        const res = await api.getMyArticles(localStorage.getItem('token'), {});
-        // 兼容两种返回格式
-        const articles = res.success ? (res.data.articles || res.data) : (res.articles || []);
-        const article = articles.find(a => a.id === parseInt(id));
-          if (article) {
-            articleId = article.id;
-            document.getElementById('title').value = article.title;
-            document.getElementById('content').value = article.content;
+        const res = await api.getArticle(id);
+        if (res.success && res.data) {
+          const article = res.data;
+          articleId = article.id;
+          document.getElementById('title').value = article.title || '';
+          document.getElementById('content').value = article.content || '';
+          document.getElementById('coverImage').value = article.cover_image || '';
+          document.getElementById('summary').value = article.summary || '';
+
+          // 分类需要等选项加载完成后再设置
+          setTimeout(() => {
             document.getElementById('category').value = article.category_id || '';
-            document.getElementById('coverImage').value = article.cover_image || '';
-            document.getElementById('summary').value = article.summary || '';
-            
-            // 加载标签
-            const tagsRes = await fetch(`${API_BASE}/article/${article.id}`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const tagsData = await tagsRes.json();
-            if (tagsData.success && tagsData.data.tags) {
-              document.getElementById('tags').value = tagsData.data.tags.map(t => t.name).join(', ');
-            }
-            
-            updatePreview();
-            currentStatus = article.status;
+          }, 0);
+
+          // 标签
+          if (article.tags && article.tags.length > 0) {
+            document.getElementById('tags').value = article.tags.map(t => t.name).join(', ');
           }
+
+          updatePreview();
+          currentStatus = article.status;
         }
       } catch (e) {
         console.error('加载文章失败', e);
