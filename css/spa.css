@@ -211,6 +211,12 @@
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-idea:active {
+  transform: scale(0.98);
 }
 
 .card-idea .card-header {
@@ -566,6 +572,15 @@
 
 .btn-primary:active {
   background: #1557b0;
+}
+
+.btn-success {
+  background: #67c23a;
+  color: #fff;
+}
+
+.btn-success:active {
+  background: #529b2f;
 }
 
 .btn-outline {

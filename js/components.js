@@ -109,11 +109,14 @@ const Components = {
     return `
       <div class="card card-idea" data-id="${idea.id}">
         <div class="card-header">
-          <span class="tag ${statusClass}">${statusText}</span>
+          <div>
+            <span class="tag ${statusClass}">${statusText}</span>
+            ${idea.category_name ? `<span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">${idea.category_name}</span>` : ''}
+          </div>
           <span class="card-date">${this.formatDate(idea.created_at)}</span>
         </div>
         <p class="card-content">${this.escape(idea.content)}</p>
-        ${idea.article_id ? `<a href="article.html?id=${idea.article_id}" class="card-link">查看文章 →</a>` : ''}
+        ${idea.article_id ? `<a href="article.html?id=${idea.article_id}" class="card-link" onclick="event.stopPropagation()">查看文章 →</a>` : ''}
       </div>
     `;
   },
