@@ -59,6 +59,12 @@
           <label class="form-label">标签（用逗号分隔）</label>
           <input type="text" class="form-input" id="ideaTags" placeholder="例如: 科技, 生活">
         </div>
+        <div class="form-group">
+          <label class="form-label">文章分类</label>
+          <select class="form-input" id="ideaCategory">
+            <option value="">不指定分类</option>
+          </select>
+        </div>
         <button class="btn btn-primary" style="width:100%;" onclick="createIdea()">
           提交创意
         </button>
@@ -83,11 +89,29 @@
   <script src="js/api.js"></script>
   <script>
     let ideas = [];
+    let categories = [];
     let currentFilter = 'all';
 
     document.addEventListener('DOMContentLoaded', async () => {
-      await loadIdeas();
+      await Promise.all([loadIdeas(), loadCategories()]);
     });
+
+    async function loadCategories() {
+      try {
+        const res = await api.get('/categories');
+        categories = res.data || [];
+        renderCategorySelect();
+      } catch (e) {
+        console.error('加载分类失败', e);
+      }
+    }
+
+    function renderCategorySelect() {
+      const select = document.getElementById('ideaCategory');
+      if (!select) return;
+      select.innerHTML = '<option value="">不指定分类</option>' + 
+        categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
 
     async function loadIdeas() {
       try {
@@ -128,6 +152,7 @@
         <div class="card" onclick="showIdeaDetail(${idea.id})">
           <div class="card-header">
             <span class="tag tag-${idea.status}">${getStatusText(idea.status)}</span>
+            ${idea.category_name ? `<span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">${idea.category_name}</span>` : ''}
             ${idea.priority > 5 ? '<span style="color:#e53935;font-size:12px;">⚡ 紧急</span>' : ''}
           </div>
           <p class="card-content">${escapeHtml(idea.content)}</p>
@@ -163,9 +188,10 @@
       }
       const priority = parseInt(document.getElementById('ideaPriority').value);
       const tags = document.getElementById('ideaTags').value.trim();
+      const category_id = document.getElementById('ideaCategory').value ? parseInt(document.getElementById('ideaCategory').value) : null;
 
       try {
-        await api.post('/ideas', { content, priority, tags: tags || null });
+        await api.post('/ideas', { content, priority, tags: tags || null, category_id });
         showToast('创意已添加，AI将自动生成文章');
         hideAddModal();
         await loadIdeas();
@@ -181,6 +207,7 @@
       document.getElementById('detailContent').innerHTML = `
         <div style="margin-bottom:16px;">
           <span class="tag tag-${idea.status}">${getStatusText(idea.status)}</span>
+          ${idea.category_name ? `<span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:8px;">${idea.category_name}</span>` : ''}
         </div>
         <p style="font-size:15px;line-height:1.8;margin-bottom:16px;">${escapeHtml(idea.content)}</p>
         ${idea.tags ? `<p style="font-size:13px;color:#666;margin-bottom:16px;">标签: ${idea.tags}</p>` : ''}

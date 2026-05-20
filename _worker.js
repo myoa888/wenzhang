@@ -83,6 +83,7 @@ const INIT_TABLES = [
     content TEXT NOT NULL,
     source TEXT DEFAULT 'manual',
     status TEXT DEFAULT 'pending',
+    category_id INTEGER,
     article_id INTEGER,
     priority INTEGER DEFAULT 0,
     tags TEXT,
@@ -917,7 +918,7 @@ ${issues}
         let where = 'WHERE i.user_id = ?';
         const bindings = [user.user_id];
         if (status) { where += ' AND i.status = ?'; bindings.push(status); }
-        const ideas = await DB.prepare(`SELECT i.*, a.title as article_title, a.id as article_id FROM ideas i LEFT JOIN articles a ON i.article_id = a.id ${where} ORDER BY i.priority DESC, i.created_at DESC`).bind(...bindings).all();
+        const ideas = await DB.prepare(`SELECT i.*, a.title as article_title, a.id as article_id, c.name as category_name, c.slug as category_slug FROM ideas i LEFT JOIN articles a ON i.article_id = a.id LEFT JOIN categories c ON i.category_id = c.id ${where} ORDER BY i.priority DESC, i.created_at DESC`).bind(...bindings).all();
         return json({ success: true, data: ideas.results });
       }
 
@@ -925,9 +926,9 @@ ${issues}
       if (path === '/ideas' && method === 'POST') {
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
-        const { content, source, priority, tags } = body;
+        const { content, source, priority, tags, category_id } = body;
         if (!content || !content.trim()) return error('创意内容不能为空');
-        const result = await DB.prepare('INSERT INTO ideas (user_id, content, source, priority, tags, status) VALUES (?, ?, ?, ?, ?, ?)').bind(user.user_id, content.trim(), source || 'manual', priority || 0, tags || null, 'pending').run();
+        const result = await DB.prepare('INSERT INTO ideas (user_id, content, source, priority, tags, category_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(user.user_id, content.trim(), source || 'manual', priority || 0, tags || null, category_id || null, 'pending').run();
         const ideaId = result.meta.last_row_id;
         // 自动创建AI任务
         await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_idea_id, priority) VALUES (?, 'ai', ?, 'generate_article', ?, ?)`).bind(user.user_id, `生成文章: ${content.substring(0, 20)}...`, ideaId, priority || 5).run();
