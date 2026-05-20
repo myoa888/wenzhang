@@ -1,387 +1,523 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>文章</title>
-  <link rel="stylesheet" href="css/mobile.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <style>
-    /* 页面特定样式 */
-    .hero-section {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 24px 16px;
-      margin: 16px;
-      border-radius: 16px;
-    }
-    
-    .hero-section h2 {
-      font-size: 22px;
-      margin-bottom: 8px;
-    }
-    
-    .hero-section p {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-    
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 16px 12px;
-    }
-    
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-    
-    .section-more {
-      font-size: 13px;
-      color: var(--gray-500);
-    }
-    
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      padding: 0 16px 16px;
-    }
-    
-    .quick-action {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 16px 8px;
-      background: var(--white);
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    
-    .quick-action:active {
-      transform: scale(0.95);
-    }
-    
-    .quick-action-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 20px;
-    }
-    
-    .quick-action-icon.blue { background: #007AFF; }
-    .quick-action-icon.green { background: #34C759; }
-    .quick-action-icon.orange { background: #FF9500; }
-    .quick-action-icon.purple { background: #AF52DE; }
-    
-    .quick-action-text {
-      font-size: 12px;
-      color: var(--gray-700);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>文章管理</title>
+    <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
-  <div id="app" class="page">
-    <!-- 顶部栏 -->
-    <header class="header">
-      <span class="header-title">发现</span>
-    </header>
-
-    <!-- 主内容 -->
-    <main class="page-content">
-      <!-- 搜索栏 -->
-      <div class="search-bar">
-        <input type="search" class="search-input" id="searchInput" placeholder="搜索文章...">
-        <button class="search-btn" onclick="goSearch()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- 快捷入口 -->
-      <div class="quick-actions">
-        <div class="quick-action" onclick="location.href='editor.html'">
-          <div class="quick-action-icon blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
-          <span class="quick-action-text">写文章</span>
-        </div>
-        <div class="quick-action" onclick="location.href='categories.html'">
-          <div class="quick-action-icon green">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7"/>
-              <rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/>
-              <rect x="3" y="14" width="7" height="7"/>
-            </svg>
-          </div>
-          <span class="quick-action-text">分类</span>
-        </div>
-        <div class="quick-action" onclick="location.href='stats.html'">
-          <div class="quick-action-icon orange">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 20V10M12 20V4M6 20v-6"/>
-            </svg>
-          </div>
-          <span class="quick-action-text">统计</span>
-        </div>
-        <div class="quick-action" onclick="location.href='my.html'">
-          <div class="quick-action-icon purple">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <span class="quick-action-text">我的</span>
-        </div>
-      </div>
-
-      <!-- 分类标签 -->
-      <div class="categories" id="categories">
-        <span class="category-tag active" data-id="">全部</span>
-      </div>
-
-      <!-- 文章列表 -->
-      <div class="section-header">
-        <span class="section-title">推荐文章</span>
-        <span class="section-more" id="totalCount"></span>
-      </div>
-      <div class="article-list" id="articleList">
-        <div class="loading">
-          <div class="spinner"></div>
-          <span>加载中...</span>
-        </div>
-      </div>
-      
-      <!-- 加载更多 -->
-      <div id="loadMore" class="loading hidden">
-        <div class="spinner"></div>
-        <span>加载中...</span>
-      </div>
-    </main>
-
-    <!-- 底部导航 -->
-    <nav class="tabbar">
-      <a href="mobile.html" class="tab-item active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        <span>首页</span>
-      </a>
-      <a href="search.html" class="tab-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <span>搜索</span>
-      </a>
-      <a href="editor.html" class="tab-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-        <span>写作</span>
-      </a>
-      <a href="my.html" class="tab-item">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-        <span>我的</span>
-      </a>
-    </nav>
-  </div>
-
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script>
-    // 状态
-    let page = 1;
-    let loading = false;
-    let hasMore = true;
-    let currentCategory = '';
-
-    // 初始化
-    document.addEventListener('DOMContentLoaded', async () => {
-      await loadCategories();
-      await loadArticles();
-      setupInfiniteScroll();
-      setupSearch();
-    });
-
-    // 加载分类
-    async function loadCategories() {
-      try {
-        const res = await Api.getCategories();
-        const categories = res.data || [];
-        const container = document.getElementById('categories');
-        
-        let html = '<span class="category-tag active" data-id="">全部</span>';
-        categories.forEach(cat => {
-          html += `<span class="category-tag" data-id="${cat.id}">${cat.name}</span>`;
-        });
-        container.innerHTML = html;
-        
-        // 绑定点击事件
-        container.querySelectorAll('.category-tag').forEach(tag => {
-          tag.addEventListener('click', () => {
-            container.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
-            tag.classList.add('active');
-            currentCategory = tag.dataset.id;
-            page = 1;
-            hasMore = true;
-            loadArticles(true);
-          });
-        });
-      } catch (e) {
-        console.error('加载分类失败:', e);
-      }
-    }
-
-    // 加载文章
-    async function loadArticles(reset = false) {
-      if (loading || !hasMore) return;
-      
-      loading = true;
-      const container = document.getElementById('articleList');
-      const loadMore = document.getElementById('loadMore');
-      
-      if (reset) {
-        page = 1;
-        container.innerHTML = '<div class="loading"><div class="spinner"></div><span>加载中...</span></div>';
-      } else {
-        loadMore.classList.remove('hidden');
-      }
-      
-      try {
-        const params = { page, limit: CONFIG.PAGE_SIZE };
-        if (currentCategory) params.category = currentCategory;
-        
-        const res = await Api.getArticles(params);
-        const articles = res.data || [];
-        const total = res.total || 0;
-        
-        document.getElementById('totalCount').textContent = `共 ${total} 篇`;
-        
-        if (reset) {
-          container.innerHTML = '';
-        }
-        
-        if (articles.length === 0 && page === 1) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/>
-              </svg>
-              <p>暂无文章</p>
+    <div class="app">
+        <!-- 首页 -->
+        <div id="page-home" class="page active">
+            <header class="header">
+                <h1 class="header-title">文章</h1>
+            </header>
+            <div class="search-bar">
+                <div class="search-input-wrapper">
+                    <input type="text" id="search-input" class="search-input" placeholder="搜索文章...">
+                    <button id="search-btn" class="search-btn">搜索</button>
+                </div>
             </div>
-          `;
-          hasMore = false;
-        } else {
-          articles.forEach(article => {
-            container.appendChild(createArticleCard(article));
-          });
-          
-          if (articles.length < CONFIG.PAGE_SIZE) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        }
-      } catch (e) {
-        container.innerHTML = `
-          <div class="error-state">
-            <p>加载失败: ${e.message}</p>
-            <button class="btn btn-outline" style="margin-top: 12px;" onclick="loadArticles(true)">重试</button>
-          </div>
-        `;
-      }
-      
-      loading = false;
-      loadMore.classList.add('hidden');
-    }
-
-    // 创建文章卡片
-    function createArticleCard(article) {
-      const card = document.createElement('div');
-      card.className = 'article-card';
-      card.onclick = () => location.href = `article.html?id=${article.id}`;
-      
-      const cover = article.cover_image || CONFIG.PLACEHOLDER_IMAGE;
-      const readTime = formatReadTime(article.content);
-      const date = formatDate(article.created_at);
-      
-      card.innerHTML = `
-        <img class="article-cover" src="${cover}" alt="${article.title}" onerror="this.src='${CONFIG.PLACEHOLDER_IMAGE}'">
-        <div class="article-info">
-          <h3 class="article-title">${article.title}</h3>
-          <div class="article-meta">
-            <span class="meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              ${date}
-            </span>
-            <span class="meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              ${readTime} 分钟
-            </span>
-          </div>
+            <div class="categories" id="categories">
+                <button class="category-tag active" data-category="all">全部</button>
+                <button class="category-tag" data-category="tech">技术</button>
+                <button class="category-tag" data-category="life">生活</button>
+                <button class="category-tag" data-category="ideas">创意</button>
+                <button class="category-tag" data-category="notes">笔记</button>
+            </div>
+            <div class="content">
+                <div id="article-list" class="article-list">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <div>加载中...</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      `;
-      
-      return card;
-    }
 
-    // 无限滚动
-    function setupInfiniteScroll() {
-      let observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          loadArticles();
+        <!-- 搜索页 -->
+        <div id="page-search" class="page">
+            <header class="header">
+                <h1 class="header-title">搜索</h1>
+            </header>
+            <div class="content">
+                <div class="search-history">
+                    <div class="search-history-title">
+                        <span>搜索历史</span>
+                        <button id="clear-history" style="background:none;border:none;color:#8E8E93;font-size:12px;">清空</button>
+                    </div>
+                    <div id="history-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 写文章页 -->
+        <div id="page-write" class="page">
+            <header class="header">
+                <h1 class="header-title">写文章</h1>
+                <button id="publish-btn" class="header-btn">发布</button>
+            </header>
+            <div class="content" style="padding:0;">
+                <div class="form-group" style="padding:16px;margin:0;">
+                    <input type="text" id="article-title" class="form-input" placeholder="标题" style="font-size:20px;font-weight:600;">
+                </div>
+                <div class="form-group" style="padding:0 16px;margin:0;">
+                    <textarea id="article-content" class="form-input form-textarea" placeholder="写下你的想法..." style="border:none;resize:none;min-height:400px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 我的页 -->
+        <div id="page-my" class="page">
+            <div id="user-info-panel" style="display:none;">
+                <div class="user-info">
+                    <div class="user-avatar">👤</div>
+                    <div>
+                        <div id="user-name" class="user-name">用户名</div>
+                        <div class="user-stats">
+                            <span><strong id="user-articles">0</strong> 文章</span>
+                            <span><strong id="user-views">0</strong> 阅读</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="login-panel" style="padding:40px 16px;text-align:center;">
+                <p style="color:#8E8E93;margin-bottom:20px;">登录后查看更多功能</p>
+                <a href="login.html" class="form-btn" style="display:inline-block;text-decoration:none;width:auto;padding:14px 40px;">登录 / 注册</a>
+            </div>
+            <div class="menu-list">
+                <button class="menu-item" onclick="location.href='stats.html'">
+                    <span class="menu-icon">📊</span>
+                    <span>数据统计</span>
+                    <span class="menu-arrow">›</span>
+                </button>
+                <button class="menu-item" onclick="location.href='categories.html'">
+                    <span class="menu-icon">📁</span>
+                    <span>分类管理</span>
+                    <span class="menu-arrow">›</span>
+                </button>
+                <button class="menu-item" onclick="location.href='ai-config.html'">
+                    <span class="menu-icon">🤖</span>
+                    <span>AI 配置</span>
+                    <span class="menu-arrow">›</span>
+                </button>
+                <button class="menu-item" onclick="location.href='ideas.html'">
+                    <span class="menu-icon">💡</span>
+                    <span>创意管理</span>
+                    <span class="menu-arrow">›</span>
+                </button>
+            </div>
+            <div id="logout-panel" class="menu-list" style="margin-top:12px;display:none;">
+                <button id="logout-btn" class="menu-item" style="color:#FF3B30;">
+                    <span class="menu-icon">🚪</span>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <nav class="tab-bar">
+            <button class="tab-item active" data-page="home">
+                <span class="tab-icon">🏠</span>
+                <span>首页</span>
+            </button>
+            <button class="tab-item" data-page="search">
+                <span class="tab-icon">🔍</span>
+                <span>搜索</span>
+            </button>
+            <button class="tab-item" data-page="write">
+                <span class="tab-icon">✏️</span>
+                <span>写作</span>
+            </button>
+            <button class="tab-item" data-page="my">
+                <span class="tab-icon">👤</span>
+                <span>我的</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // 状态管理
+        const State = {
+            currentPage: 'home',
+            currentCategory: 'all',
+            articles: [],
+            loading: false,
+            page: 1,
+            hasMore: true
+        };
+
+        // DOM 元素
+        const $ = (id) => document.getElementById(id);
+        const $$ = (selector) => document.querySelectorAll(selector);
+
+        // 显示 Toast
+        function showToast(message) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 2000);
         }
-      }, { threshold: 0.1 });
-      
-      observer.observe(document.getElementById('loadMore'));
-    }
 
-    // 搜索
-    function setupSearch() {
-      const input = document.getElementById('searchInput');
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          goSearch();
+        // 显示/隐藏加载状态
+        function setLoading(loading, container = 'article-list') {
+            const el = $(container);
+            if (!el) return;
+            
+            if (loading) {
+                el.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <div>加载中...</div>
+                    </div>
+                `;
+            }
+            State.loading = loading;
         }
-      });
-    }
 
-    function goSearch() {
-      const keyword = document.getElementById('searchInput').value.trim();
-      if (keyword) {
-        location.href = `search.html?q=${encodeURIComponent(keyword)}`;
-      }
-    }
-  </script>
+        // 渲染文章列表
+        function renderArticles(articles, append = false) {
+            const container = $('article-list');
+            if (!container) return;
+
+            if (!append) {
+                State.articles = [];
+            }
+
+            if (articles.length === 0 && !append) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>暂无文章</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!append) {
+                container.innerHTML = '';
+            }
+
+            articles.forEach(article => {
+                State.articles.push(article);
+                const item = document.createElement('div');
+                item.className = 'article-item';
+                item.innerHTML = `
+                    <div class="article-title">${escapeHtml(article.title)}</div>
+                    <div class="article-meta">
+                        <span class="article-category">${escapeHtml(article.category || '默认')}</span>
+                        <span>${formatDate(article.created_at)}</span>
+                        <span>${article.views || 0} 阅读</span>
+                    </div>
+                    ${article.excerpt ? `<div class="article-excerpt">${escapeHtml(article.excerpt)}</div>` : ''}
+                `;
+                item.onclick = () => location.href = `article.html?id=${article.id}`;
+                container.appendChild(item);
+            });
+
+            // 添加加载更多提示
+            if (State.hasMore) {
+                const loadMore = document.createElement('div');
+                loadMore.className = 'loading';
+                loadMore.id = 'load-more';
+                loadMore.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <div>加载更多...</div>
+                `;
+                container.appendChild(loadMore);
+            }
+        }
+
+        // 加载文章列表
+        async function loadArticles(append = false) {
+            if (State.loading) return;
+            if (!append) {
+                State.page = 1;
+                State.hasMore = true;
+            }
+            if (!State.hasMore) return;
+
+            setLoading(!append);
+
+            try {
+                // 模拟数据（实际使用时替换为真实API）
+                const mockData = getMockArticles(State.page, State.currentCategory);
+                
+                if (mockData.length === 0) {
+                    State.hasMore = false;
+                    if (!append) {
+                        renderArticles([]);
+                    }
+                    const loadMore = $('load-more');
+                    if (loadMore) loadMore.remove();
+                    return;
+                }
+
+                if (mockData.length < Config.PAGE_SIZE) {
+                    State.hasMore = false;
+                }
+
+                renderArticles(mockData, append);
+                State.page++;
+            } catch (error) {
+                console.error('Load articles failed:', error);
+                const container = $('article-list');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <p>加载失败</p>
+                            <button class="retry-btn" onclick="loadArticles(${append})">重试</button>
+                        </div>
+                    `;
+                }
+            } finally {
+                State.loading = false;
+            }
+        }
+
+        // 获取模拟数据
+        function getMockArticles(page, category) {
+            const allArticles = [
+                { id: 1, title: 'JavaScript 高级技巧总结', category: 'tech', created_at: '2024-01-15', views: 1250, excerpt: '深入理解闭包、原型链、异步编程等核心概念...' },
+                { id: 2, title: '移动端开发最佳实践', category: 'tech', created_at: '2024-01-14', views: 890, excerpt: '从响应式设计到性能优化，全面提升移动端体验...' },
+                { id: 3, title: '我的极简生活记录', category: 'life', created_at: '2024-01-13', views: 456, excerpt: '断舍离给我带来的改变与思考...' },
+                { id: 4, title: '如何培养写作习惯', category: 'ideas', created_at: '2024-01-12', views: 678, excerpt: '每天写作1000字，一年后的收获...' },
+                { id: 5, title: 'React 18 新特性解析', category: 'tech', created_at: '2024-01-11', views: 1560, excerpt: '并发渲染、Suspense 升级、自动批处理...' },
+                { id: 6, title: '学习笔记：数据结构与算法', category: 'notes', created_at: '2024-01-10', views: 320, excerpt: '数组、链表、树、图的基本操作与算法实现...' },
+                { id: 7, title: '美食探店：隐藏在小巷里的川菜馆', category: 'life', created_at: '2024-01-09', views: 234, excerpt: '一家不起眼的小店，却做出了最地道的川味...' },
+                { id: 8, title: '产品创意：智能家居控制系统', category: 'ideas', created_at: '2024-01-08', views: 567, excerpt: '用AI打造更智能、更便捷的家居体验...' },
+                { id: 9, title: 'TypeScript 类型体操入门', category: 'tech', created_at: '2024-01-07', views: 890, excerpt: '从基础类型到高级类型，一文搞懂TypeScript...' },
+                { id: 10, title: 'Node.js 性能优化指南', category: 'tech', created_at: '2024-01-06', views: 1100, excerpt: '内存管理、缓存策略、集群部署...' }
+            ];
+
+            let filtered = category === 'all' ? allArticles : allArticles.filter(a => a.category === category);
+            const start = (page - 1) * Config.PAGE_SIZE;
+            return filtered.slice(start, start + Config.PAGE_SIZE);
+        }
+
+        // 工具函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) return '今天';
+            if (days === 1) return '昨天';
+            if (days < 7) return `${days}天前`;
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+        }
+
+        // 切换页面
+        function switchPage(pageName) {
+            // 保存当前页状态
+            State.currentPage = pageName;
+
+            // 隐藏所有页面
+            $$('.page').forEach(page => page.classList.remove('active'));
+
+            // 显示目标页面
+            const targetPage = $(`page-${pageName}`);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+
+            // 更新导航状态
+            $$('.tab-item').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.page === pageName);
+            });
+
+            // 关键修复：当切换回首页时，确保正确显示内容
+            if (pageName === 'home') {
+                // 如果文章列表为空或只有加载状态，重新加载
+                const container = $('article-list');
+                if (!container || container.querySelector('.empty-state') || container.children.length === 0) {
+                    State.page = 1;
+                    State.hasMore = true;
+                    loadArticles(false);
+                } else if (container.querySelector('.loading') && !State.loading) {
+                    // 如果显示加载中但实际没有在加载，重置状态
+                    loadArticles(false);
+                }
+            }
+
+            // 切换到我的页面时刷新用户状态
+            if (pageName === 'my') {
+                checkUserStatus();
+            }
+        }
+
+        // 检查用户登录状态
+        function checkUserStatus() {
+            const token = localStorage.getItem(Config.STORAGE_KEYS.TOKEN);
+            const userPanel = $('user-info-panel');
+            const loginPanel = $('login-panel');
+            const logoutPanel = $('logout-panel');
+
+            if (token) {
+                const user = JSON.parse(localStorage.getItem(Config.STORAGE_KEYS.USER) || '{}');
+                $('user-name').textContent = user.username || '用户';
+                $('user-articles').textContent = user.articles || 0;
+                $('user-views').textContent = user.views || 0;
+                userPanel.style.display = 'block';
+                loginPanel.style.display = 'none';
+                logoutPanel.style.display = 'block';
+            } else {
+                userPanel.style.display = 'none';
+                loginPanel.style.display = 'block';
+                logoutPanel.style.display = 'none';
+            }
+        }
+
+        // 保存搜索历史
+        function saveSearchHistory(keyword) {
+            if (!keyword.trim()) return;
+            let history = JSON.parse(localStorage.getItem(Config.STORAGE_KEYS.SEARCH_HISTORY) || '[]');
+            history = history.filter(h => h !== keyword);
+            history.unshift(keyword);
+            history = history.slice(0, 10);
+            localStorage.setItem(Config.STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(history));
+        }
+
+        // 渲染搜索历史
+        function renderSearchHistory() {
+            const history = JSON.parse(localStorage.getItem(Config.STORAGE_KEYS.SEARCH_HISTORY) || '[]');
+            const container = $('history-list');
+            if (!container) return;
+
+            if (history.length === 0) {
+                container.innerHTML = '<p style="color:#8E8E93;font-size:14px;">暂无搜索记录</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(h => 
+                `<span class="history-item" onclick="searchFromHistory('${escapeHtml(h)}')">${escapeHtml(h)}</span>`
+            ).join('');
+        }
+
+        // 从历史记录搜索
+        function searchFromHistory(keyword) {
+            $('search-input').value = keyword;
+            doSearch();
+        }
+
+        // 执行搜索
+        function doSearch() {
+            const keyword = $('search-input').value.trim();
+            if (!keyword) {
+                showToast('请输入搜索关键词');
+                return;
+            }
+            saveSearchHistory(keyword);
+            showToast(`搜索: ${keyword}`);
+        }
+
+        // 初始化
+        function init() {
+            // 加载文章列表
+            loadArticles(false);
+
+            // 搜索功能
+            $('search-btn').onclick = doSearch;
+            $('search-input').onkeypress = (e) => {
+                if (e.key === 'Enter') doSearch();
+            };
+
+            // 清空搜索历史
+            $('clear-history').onclick = () => {
+                localStorage.removeItem(Config.STORAGE_KEYS.SEARCH_HISTORY);
+                renderSearchHistory();
+            };
+
+            // 分类切换
+            $$('.category-tag').forEach(tag => {
+                tag.onclick = () => {
+                    $$('.category-tag').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                    State.currentCategory = tag.dataset.category;
+                    State.page = 1;
+                    State.hasMore = true;
+                    loadArticles(false);
+                };
+            });
+
+            // 底部导航切换
+            $$('.tab-item').forEach(tab => {
+                tab.onclick = () => switchPage(tab.dataset.page);
+            });
+
+            // 滚动加载更多
+            const content = document.querySelector('#page-home .content');
+            if (content) {
+                content.onscroll = () => {
+                    if (State.loading || !State.hasMore) return;
+                    
+                    const scrollHeight = content.scrollHeight;
+                    const scrollTop = content.scrollTop;
+                    const clientHeight = content.clientHeight;
+                    
+                    // 滚动到底部前200px时加载更多
+                    if (scrollTop + clientHeight > scrollHeight - 200) {
+                        loadArticles(true);
+                    }
+                };
+            }
+
+            // 退出登录
+            $('logout-btn').onclick = () => {
+                localStorage.removeItem(Config.STORAGE_KEYS.TOKEN);
+                localStorage.removeItem(Config.STORAGE_KEYS.USER);
+                showToast('已退出登录');
+                checkUserStatus();
+            };
+
+            // 发布文章
+            $('publish-btn').onclick = () => {
+                const title = $('article-title').value.trim();
+                const content = $('article-content').value.trim();
+                
+                if (!title) {
+                    showToast('请输入标题');
+                    return;
+                }
+                if (!content) {
+                    showToast('请输入内容');
+                    return;
+                }
+                
+                showToast('发布成功（模拟）');
+                $('article-title').value = '';
+                $('article-content').value = '';
+                switchPage('home');
+            };
+        }
+
+        // 页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+    </script>
 </body>
 </html>

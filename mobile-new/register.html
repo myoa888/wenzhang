@@ -1,96 +1,85 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>注册</title>
-  <link rel="stylesheet" href="css/mobile.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>注册</title>
+    <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
-  <div class="page auth-page">
-    <div class="auth-logo">
-      <h1>注册</h1>
-      <p style="color: #666; margin-top: 8px;">创建你的账号</p>
+    <div class="app">
+        <div class="page active" style="padding-top: 60px;">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px;">✨</div>
+                <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 8px;">创建账户</h1>
+                <p style="color: #8E8E93; margin-bottom: 40px;">开始你的创作之旅</p>
+            </div>
+            <div style="padding: 0 20px;">
+                <div class="form-group">
+                    <input type="text" id="username" class="form-input" placeholder="用户名">
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" class="form-input" placeholder="邮箱">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" class="form-input" placeholder="密码">
+                </div>
+                <button id="register-btn" class="form-btn">注册</button>
+                <p class="form-link">
+                    已有账户？<a href="login.html" style="color: #007AFF; text-decoration: none;">立即登录</a>
+                </p>
+                <p style="text-align: center; margin-top: 20px;">
+                    <a href="mobile.html" style="color: #8E8E93; text-decoration: none; font-size: 14px;">‹ 返回首页</a>
+                </p>
+            </div>
+        </div>
     </div>
 
-    <form class="auth-form" id="registerForm">
-      <div class="form-group">
-        <label class="form-label">用户名</label>
-        <input type="text" class="form-input" id="username" placeholder="请输入用户名" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">邮箱（选填）</label>
-        <input type="email" class="form-input" id="email" placeholder="请输入邮箱">
-      </div>
-      <div class="form-group">
-        <label class="form-label">密码</label>
-        <input type="password" class="form-input" id="password" placeholder="请输入密码（至少6位）" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">确认密码</label>
-        <input type="password" class="form-input" id="confirmPassword" placeholder="请再次输入密码" required>
-      </div>
-      <button type="submit" class="btn btn-primary" id="registerBtn">注册</button>
-    </form>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+    (function() {
+        const $ = id => document.getElementById(id);
 
-    <div class="auth-footer">
-      已有账号？<a href="login.html">立即登录</a>
-    </div>
-  </div>
-
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script>
-    // 已登录直接跳转
-    if (Api.isLoggedIn()) {
-      location.href = 'mobile.html';
-    }
-
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const username = document.getElementById('username').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
-      const btn = document.getElementById('registerBtn');
-      
-      if (!username || !password) {
-        showToast('请填写必填信息');
-        return;
-      }
-      
-      if (password.length < 6) {
-        showToast('密码至少6位');
-        return;
-      }
-      
-      if (password !== confirmPassword) {
-        showToast('两次密码不一致');
-        return;
-      }
-      
-      btn.disabled = true;
-      btn.textContent = '注册中...';
-      
-      try {
-        const res = await Api.register(username, password, email);
-        
-        if (res.success || res.user_id) {
-          showToast('注册成功');
-          setTimeout(() => {
-            location.href = 'login.html';
-          }, 500);
-        } else {
-          throw new Error(res.error || '注册失败');
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
         }
-      } catch (e) {
-        showToast(e.message || '注册失败');
-        btn.disabled = false;
-        btn.textContent = '注册';
-      }
-    });
-  </script>
+
+        $('register-btn').onclick = async () => {
+            const username = $('username').value.trim();
+            const email = $('email').value.trim();
+            const password = $('password').value;
+
+            if (!username || !email || !password) {
+                showToast('请填写完整信息');
+                return;
+            }
+
+            if (password.length < 6) {
+                showToast('密码至少6位');
+                return;
+            }
+
+            const btn = $('register-btn');
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+
+            setTimeout(() => {
+                localStorage.setItem(Config.STORAGE_KEYS.TOKEN, 'mock_token_456');
+                localStorage.setItem(Config.STORAGE_KEYS.USER, JSON.stringify({
+                    username,
+                    articles: 0,
+                    views: 0
+                }));
+                showToast('注册成功');
+                setTimeout(() => location.href = 'mobile.html', 1000);
+            }, 1000);
+        };
+    })();
+    </script>
 </body>
 </html>

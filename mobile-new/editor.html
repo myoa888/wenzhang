@@ -1,370 +1,70 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>写文章</title>
-  <link rel="stylesheet" href="css/mobile.css">
-  <style>
-    .editor-page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .editor-toolbar {
-      display: flex;
-      gap: 8px;
-      padding: 12px 16px;
-      background: white;
-      border-bottom: 1px solid var(--gray-200);
-      overflow-x: auto;
-      flex-shrink: 0;
-    }
-    .toolbar-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: var(--gray-100);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--gray-700);
-      font-size: 16px;
-      flex-shrink: 0;
-      transition: all 0.2s;
-    }
-    .toolbar-btn:active {
-      background: var(--gray-200);
-    }
-    .editor-content {
-      flex: 1;
-      padding: 16px;
-      background: white;
-    }
-    .editor-title {
-      width: 100%;
-      border: none;
-      font-size: 24px;
-      font-weight: 700;
-      padding: 0;
-      margin-bottom: 16px;
-      outline: none;
-    }
-    .editor-body {
-      width: 100%;
-      min-height: 300px;
-      border: none;
-      font-size: 16px;
-      line-height: 1.8;
-      padding: 0;
-      outline: none;
-      resize: none;
-    }
-    .editor-footer {
-      padding: 12px 16px;
-      background: white;
-      border-top: 1px solid var(--gray-200);
-      display: flex;
-      gap: 12px;
-    }
-    .editor-footer .btn {
-      flex: 1;
-    }
-    .image-preview {
-      max-width: 200px;
-      max-height: 150px;
-      margin: 8px 0;
-      border-radius: 8px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>写文章</title>
+    <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
-  <div class="editor-page">
-    <!-- 顶部栏 -->
-    <header class="header">
-      <a href="mobile.html" class="header-back">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-      </a>
-      <span class="header-title" id="pageTitle">写文章</span>
-      <button class="header-action" id="publishBtn" style="display: none;" onclick="showSettings()">发布</button>
-    </header>
-
-    <!-- 工具栏 -->
-    <div class="editor-toolbar">
-      <button class="toolbar-btn" onclick="insertText('**', '**')" title="加粗">B</button>
-      <button class="toolbar-btn" onclick="insertText('*', '*')" title="斜体"><em>I</em></button>
-      <button class="toolbar-btn" onclick="insertText('# ')" title="标题">H</button>
-      <button class="toolbar-btn" onclick="insertText('\n- ')" title="列表">•</button>
-      <button class="toolbar-btn" onclick="insertText('\n> ')" title="引用">"</button>
-      <button class="toolbar-btn" onclick="insertText('`', '`')" title="代码">⌨</button>
-      <button class="toolbar-btn" onclick="insertLink()" title="链接">🔗</button>
-      <button class="toolbar-btn" onclick="insertImage()" title="图片">🖼</button>
-      <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-    </div>
-
-    <!-- 编辑器 -->
-    <div class="editor-content">
-      <input type="text" class="editor-title" id="titleInput" placeholder="标题" maxlength="100">
-      <textarea class="editor-body" id="editorBody" placeholder="开始写作..."></textarea>
-    </div>
-
-    <!-- 底部按钮 -->
-    <div class="editor-footer">
-      <button class="btn btn-outline" onclick="saveDraft()">保存草稿</button>
-      <button class="btn btn-primary" onclick="showSettings()">发布</button>
-    </div>
-  </div>
-
-  <!-- 发布设置弹窗 -->
-  <div class="modal-overlay" id="settingsModal">
-    <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">发布设置</span>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">分类</label>
-          <select class="form-input" id="categorySelect">
-            <option value="">请选择分类</option>
-          </select>
+    <div class="app">
+        <div class="page active">
+            <div class="page-header">
+                <button class="back-btn" onclick="location.href='mobile.html'">‹ 返回</button>
+                <h1 class="page-title">写文章</h1>
+                <button class="header-btn" onclick="saveDraft()">保存</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="article-title" class="form-input" placeholder="文章标题" style="font-size:18px;">
+            </div>
+            <div class="editor-toolbar">
+                <button class="toolbar-btn" onclick="insertText('# ')">H1</button>
+                <button class="toolbar-btn" onclick="insertText('## ')">H2</button>
+                <button class="toolbar-btn" onclick="insertText('**')">B</button>
+                <button class="toolbar-btn" onclick="insertText('*')">I</button>
+                <button class="toolbar-btn" onclick="insertText('\n```\n\n```')">Code</button>
+                <button class="toolbar-btn" onclick="insertText('\n- ')">List</button>
+                <button class="toolbar-btn" onclick="insertText('\n> ')">Quote</button>
+            </div>
+            <div class="content" style="padding:0;">
+                <textarea id="editor" class="form-input" placeholder="开始写作..." style="border:none;min-height:500px;padding:16px;resize:none;"></textarea>
+            </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">标签（多个用逗号分隔）</label>
-          <input type="text" class="form-input" id="tagsInput" placeholder="例如：技术,生活">
-        </div>
-        <div class="form-group">
-          <label class="form-label">封面图片URL</label>
-          <input type="text" class="form-input" id="coverInput" placeholder="留空则使用默认封面">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="closeModal()">取消</button>
-        <button class="btn btn-primary" id="confirmPublishBtn" onclick="publish()">确认发布</button>
-      </div>
     </div>
-  </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script>
-    let editId = null;
-    let draftKey = 'article_draft';
+    <script src="js/config.js"></script>
+    <script>
+    const editor = document.getElementById('editor');
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 检查登录
-      if (!Api.isLoggedIn()) {
-        showToast('请先登录');
-        setTimeout(() => location.href = 'login.html', 1000);
-        return;
-      }
-
-      // 检查是否是编辑模式
-      const params = new URLSearchParams(location.search);
-      editId = params.get('id');
-      
-      if (editId) {
-        document.getElementById('pageTitle').textContent = '编辑文章';
-        await loadArticle(editId);
-      } else {
-        loadDraft();
-      }
-
-      // 加载分类
-      await loadCategories();
-
-      // 显示发布按钮
-      document.getElementById('publishBtn').style.display = 'block';
-
-      // 实时保存草稿
-      const titleInput = document.getElementById('titleInput');
-      const editorBody = document.getElementById('editorBody');
-      
-      let saveTimer;
-      const autoSave = () => {
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(saveDraft, 2000);
-      };
-      
-      titleInput.addEventListener('input', autoSave);
-      editorBody.addEventListener('input', autoSave);
-    });
-
-    async function loadArticle(id) {
-      try {
-        const res = await Api.getArticle(id);
-        const article = res.data;
-        
-        document.getElementById('titleInput').value = article.title || '';
-        document.getElementById('editorBody').value = article.content || '';
-        document.getElementById('coverInput').value = article.cover_image || '';
-        document.getElementById('categorySelect').value = article.category_id || '';
-      } catch (e) {
-        showToast('加载文章失败');
-      }
-    }
-
-    async function loadCategories() {
-      try {
-        const res = await Api.getCategories();
-        const categories = res.data || [];
-        const select = document.getElementById('categorySelect');
-        
-        categories.forEach(cat => {
-          const option = document.createElement('option');
-          option.value = cat.id;
-          option.textContent = cat.name;
-          select.appendChild(option);
-        });
-      } catch (e) {
-        console.error('加载分类失败', e);
-      }
-    }
-
-    function insertText(before, after = '') {
-      const editor = document.getElementById('editorBody');
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      const text = editor.value;
-      const selected = text.substring(start, end);
-      
-      const newText = before + selected + after;
-      editor.value = text.substring(0, start) + newText + text.substring(end);
-      editor.selectionStart = start + before.length;
-      editor.selectionEnd = start + before.length + selected.length;
-      editor.focus();
-    }
-
-    function insertLink() {
-      const url = prompt('请输入链接地址:');
-      if (url) {
-        const editor = document.getElementById('editorBody');
+    function insertText(text) {
         const start = editor.selectionStart;
         const end = editor.selectionEnd;
-        const text = editor.value;
-        const selected = text.substring(start, end) || '链接文字';
-        
-        const link = `[${selected}](${url})`;
-        editor.value = text.substring(0, start) + link + text.substring(end);
-      }
-    }
-
-    function insertImage() {
-      document.getElementById('imageInput').click();
-    }
-
-    async function handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      showToast('上传中...');
-      
-      try {
-        const res = await Api.uploadImage(file);
-        if (res.success || res.url) {
-          insertText(`![图片](${res.url})`);
-          showToast('上传成功');
-        } else {
-          throw new Error(res.error || '上传失败');
-        }
-      } catch (e) {
-        showToast('上传失败，请检查网络');
-      }
-      
-      event.target.value = '';
+        const before = editor.value.substring(0, start);
+        const after = editor.value.substring(end);
+        editor.value = before + text + after;
+        editor.focus();
+        editor.selectionStart = editor.selectionEnd = start + text.length;
     }
 
     function saveDraft() {
-      const title = document.getElementById('titleInput').value;
-      const content = document.getElementById('editorBody').value;
-      
-      localStorage.setItem(draftKey, JSON.stringify({
-        title,
-        content,
-        savedAt: new Date().toISOString()
-      }));
-    }
-
-    function loadDraft() {
-      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-      if (draft && (draft.title || draft.content)) {
-        if (confirm('发现未保存的草稿，是否继续编辑？')) {
-          document.getElementById('titleInput').value = draft.title || '';
-          document.getElementById('editorBody').value = draft.content || '';
-        } else {
-          localStorage.removeItem(draftKey);
-        }
-      }
-    }
-
-    function showSettings() {
-      const title = document.getElementById('titleInput').value.trim();
-      const content = document.getElementById('editorBody').value.trim();
-      
-      if (!title) {
-        showToast('请输入标题');
-        return;
-      }
-      
-      if (!content) {
-        showToast('请输入内容');
-        return;
-      }
-      
-      document.getElementById('settingsModal').classList.add('show');
-    }
-
-    function closeModal() {
-      document.getElementById('settingsModal').classList.remove('show');
-    }
-
-    async function publish() {
-      const title = document.getElementById('titleInput').value.trim();
-      const content = document.getElementById('editorBody').value.trim();
-      const categoryId = document.getElementById('categorySelect').value;
-      const tags = document.getElementById('tagsInput').value.trim();
-      const cover = document.getElementById('coverInput').value.trim();
-      
-      const btn = document.getElementById('confirmPublishBtn');
-      btn.disabled = true;
-      btn.textContent = '发布中...';
-      
-      try {
-        const data = {
-          title,
-          content,
-          status: 'published',
-          cover_image: cover
-        };
+        const title = document.getElementById('article-title').value.trim();
+        const content = editor.value;
         
-        if (categoryId) data.category_id = categoryId;
-        if (tags) data.tags = tags;
-        
-        let res;
-        if (editId) {
-          res = await Api.updateArticle(editId, data);
-        } else {
-          res = await Api.createArticle(data);
+        if (!title && !content) {
+            alert('内容为空');
+            return;
         }
-        
-        if (res.success || res.id) {
-          localStorage.removeItem(draftKey);
-          showToast('发布成功');
-          setTimeout(() => {
-            location.href = 'article.html?id=' + (editId || res.id);
-          }, 1000);
-        } else {
-          throw new Error(res.error || '发布失败');
-        }
-      } catch (e) {
-        showToast(e.message || '发布失败');
-        btn.disabled = false;
-        btn.textContent = '确认发布';
-      }
+
+        localStorage.setItem('draft_title', title);
+        localStorage.setItem('draft_content', content);
+        alert('草稿已保存');
     }
-  </script>
+
+    // 加载草稿
+    const draftTitle = localStorage.getItem('draft_title');
+    const draftContent = localStorage.getItem('draft_content');
+    if (draftTitle) document.getElementById('article-title').value = draftTitle;
+    if (draftContent) editor.value = draftContent;
+    </script>
 </body>
 </html>
