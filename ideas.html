@@ -21,7 +21,7 @@
     </header>
 
     <div class="filter-tabs" style="position:fixed;top:48px;left:0;right:0;background:#fff;z-index:99;padding:8px 12px;border-bottom:1px solid #eee;">
-      <div style="display:flex;gap:8px;overflow-x:auto;">
+      <div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <button class="tab active" data-filter="all" onclick="filterIdeas('all')" style="flex-shrink:0;">全部</button>
         <button class="tab" data-filter="pending" onclick="filterIdeas('pending')" style="flex-shrink:0;">待生成</button>
         <button class="tab" data-filter="generating" onclick="filterIdeas('generating')" style="flex-shrink:0;">生成中</button>
@@ -29,7 +29,14 @@
       </div>
     </div>
 
-    <div class="card-list" id="ideasList" style="margin-top:96px;">
+    <!-- 分类筛选 -->
+    <div class="category-filter" style="position:fixed;top:104px;left:0;right:0;background:#fff;z-index:98;padding:0 12px 8px;border-bottom:1px solid #eee;">
+      <div id="categoryTabs" style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <button class="tab active" data-category="" onclick="filterByCategory('')" style="flex-shrink:0;font-size:12px;">全部分类</button>
+      </div>
+    </div>
+
+    <div class="card-list" id="ideasList" style="margin-top:152px;">
       <div class="loading">
         <div class="spinner"></div>
         <span>加载中...</span>
@@ -83,6 +90,7 @@
     let ideas = [];
     let categories = [];
     let currentFilter = 'all';
+    let currentCategory = '';
 
     document.addEventListener('DOMContentLoaded', async () => {
       await Promise.all([loadIdeas(), loadCategories()]);
@@ -93,6 +101,7 @@
         const res = await api.get('/categories');
         categories = res.data || [];
         renderCategorySelect();
+        renderCategoryTabs();
       } catch (e) {
         console.error('加载分类失败', e);
       }
@@ -103,6 +112,23 @@
       if (!select) return;
       select.innerHTML = '<option value="">不指定分类</option>' + 
         categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    function renderCategoryTabs() {
+      const container = document.getElementById('categoryTabs');
+      if (!container || categories.length === 0) return;
+      container.innerHTML = `
+        <button class="tab ${currentCategory === '' ? 'active' : ''}" data-category="" onclick="filterByCategory('')" style="flex-shrink:0;font-size:12px;">全部分类</button>
+      ` + categories.map(c => `
+        <button class="tab ${currentCategory == c.id ? 'active' : ''}" data-category="${c.id}" onclick="filterByCategory(${c.id})" style="flex-shrink:0;font-size:12px;">${c.name}</button>
+      `).join('');
+    }
+
+    function filterByCategory(categoryId) {
+      currentCategory = categoryId;
+      document.querySelectorAll('#categoryTabs .tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`#categoryTabs [data-category="${categoryId}"]`).classList.add('active');
+      renderIdeas();
     }
 
     async function loadIdeas() {
@@ -124,17 +150,20 @@
 
     function renderIdeas() {
       const list = document.getElementById('ideasList');
-      const filtered = currentFilter === 'all' ? ideas : ideas.filter(i => i.status === currentFilter);
+      let filtered = currentFilter === 'all' ? ideas : ideas.filter(i => i.status === currentFilter);
+      if (currentCategory !== '') {
+        filtered = filtered.filter(i => i.category_id == currentCategory);
+      }
       
       if (filtered.length === 0) {
         list.innerHTML = `
-          <div class="empty-state" style="margin-top:80px;">
+          <div class="empty-state" style="margin-top:40px;">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
-            <p>${currentFilter === 'all' ? '暂无创意' : '暂无此类创意'}</p>
+            <p>${currentFilter === 'all' && currentCategory === '' ? '暂无创意' : '暂无符合条件的创意'}</p>
           </div>
         `;
         return;
