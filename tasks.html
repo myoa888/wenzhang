@@ -15,7 +15,10 @@
         </svg>
       </button>
       <h1>待办任务</h1>
-      <button class="add-btn" onclick="showAddModal()">+ 新建</button>
+      <div style="display:flex;gap:8px;">
+        <button class="add-btn" onclick="runAIAutomation()" style="background:#10b981;">🤖 AI</button>
+        <button class="add-btn" onclick="showAddModal()">+ 新建</button>
+      </div>
     </header>
 
     <div class="filter-tabs" style="position:fixed;top:48px;left:0;right:0;background:#fff;z-index:99;padding:8px 12px;border-bottom:1px solid #eee;">
@@ -234,6 +237,27 @@
         await loadTasks();
       } catch (e) {
         showToast('删除失败');
+      }
+    }
+
+    async function runAIAutomation() {
+      if (!confirm('🤖 确定触发AI自动处理？\n\nAI将自动：\n• 检测待生成的创意 → 生成文章\n• 检测需要修复的文章 → 自动修改\n• 处理pending状态的AI任务')) return;
+
+      showToast('🤖 AI正在处理中...');
+      try {
+        const res = await api.request('/ai/automation', {
+          method: 'POST'
+        });
+
+        if (res.success) {
+          const { processed, created, fixed } = res.data;
+          showToast(`✅ 完成！处理${processed}个，创建${created}个任务，修复${fixed}篇文章`);
+          await loadTasks();
+        } else {
+          showToast('⚠️ ' + (res.error || 'AI处理失败'));
+        }
+      } catch (e) {
+        showToast('❌ AI处理出错');
       }
     }
 

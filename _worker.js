@@ -893,13 +893,17 @@ ${issues}
         return json({ url: attachment.url, filename: attachment.original_name });
       }
 
-      // ========== AI 自动化检测 API (供 Cron 调用) ==========
+      // ========== AI 自动化检测 API (供 Cron 或登录用户调用) ==========
       if (path === '/ai/automation' && method === 'POST') {
-        // 验证自动化密钥
+        // 验证：自动化密钥 或 登录用户
         const autoKey = request.headers.get('X-Auto-Key');
-        if (autoKey !== env.AUTO_KEY) {
-          return error('无权访问', 401);
+        const authUser = await verifyToken(token);
+        if (autoKey !== env.AUTO_KEY && !authUser) {
+          return error('请先登录或提供自动化密钥', 401);
         }
+
+        // 获取用户ID（优先使用登录用户，否则默认1）
+        const userId = authUser?.user_id || 1;
 
         const results = { processed: 0, created: 0, fixed: 0 };
 
@@ -916,7 +920,7 @@ ${issues}
           // 确保有AI修复任务
           const existingTask = await DB.prepare(`SELECT id FROM tasks WHERE related_article_id = ? AND assignee = 'ai' AND status = 'pending' AND task_type = 'fix_article'`).bind(article.id).first();
           if (!existingTask) {
-            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_article_id, priority) VALUES (1, 'ai', ?, 'fix_article', ?, 9)`).bind(`修复文章问题 (${article.issue_count}个)`, article.id).run();
+            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_article_id, priority) VALUES (?, 'ai', ?, 'fix_article', ?, 9)`).bind(userId, `修复文章问题 (${article.issue_count}个)`, article.id).run();
             results.created++;
           }
           results.processed++;
@@ -927,7 +931,7 @@ ${issues}
         for (const idea of pendingIdeas.results || []) {
           const existingTask = await DB.prepare(`SELECT id FROM tasks WHERE related_idea_id = ? AND assignee = 'ai' AND status = 'pending' AND task_type = 'generate_article'`).bind(idea.id).first();
           if (!existingTask) {
-            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_idea_id, priority) VALUES (1, 'ai', ?, 'generate_article', ?, ?)`).bind(`生成文章: ${idea.content.substring(0, 20)}...`, idea.id, idea.priority).run();
+            await DB.prepare(`INSERT INTO tasks (user_id, assignee, title, task_type, related_idea_id, priority) VALUES (?, 'ai', ?, 'generate_article', ?, ?)`).bind(userId, `生成文章: ${idea.content.substring(0, 20)}...`, idea.id, idea.priority).run();
             results.created++;
           }
         }
@@ -962,7 +966,7 @@ ${issues}
               if (aiData.choices?.[0]?.message?.content) {
                 const content = aiData.choices[0].message.content;
                 const tempSlug = 'temp-' + Date.now();
-                const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind('AI生成文章', content, 1, tempSlug, 'pending_review').run();
+                const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind('AI生成文章', content, userId, tempSlug, 'pending_review').run();
                 const articleId = tempResult.meta.last_row_id;
                 const slug = generateSlug('AI生成文章', articleId);
                 await DB.prepare('UPDATE articles SET slug = ? WHERE id = ?').bind(slug, articleId).run();
