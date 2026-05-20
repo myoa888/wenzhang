@@ -537,6 +537,165 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
       }
     }
 
+    // ========== AI 批量生成文章 API（一键全部未生成） ==========
+    if (path === '/ai/batch-generate' && method === 'POST') {
+      const user = await verifyToken(token);
+      if (!user) return error('需要登录', 401);
+
+      // 获取所有待生成的 ideas
+      const pendingIdeas = await DB.prepare('SELECT id, content, category_id, tags FROM ideas WHERE status = ? AND user_id = ?').bind('pending', user.user_id).all();
+      
+      if (pendingIdeas.results.length === 0) {
+        return json({ success: true, message: '没有待生成的内容', results: [] }, '没有待生成的内容');
+      }
+
+      // 获取 DeepSeek API key
+      const deepseekKey = env.DEEPSEEK_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+      const qwenKey = env.QWEN_API_KEY;
+      const aiKey = deepseekKey || qwenKey;
+      
+      let model = 'deepseek-ai/DeepSeek-V3';
+      let apiBase = 'https://api.siliconflow.cn/v1';
+      
+      if (qwenKey && !deepseekKey) {
+        model = 'Qwen/Qwen2.5-72B-Instruct';
+      }
+      
+      if (!aiKey) {
+        return error('AI服务未配置，请联系管理员配置 API Key', 503);
+      }
+
+      const systemPrompt = `你是一个专业的自媒体文章写作专家。请根据用户提供的创意想法，生成一篇高质量的自媒体文章。
+
+要求：
+1. 文章标题吸引人，能引起读者兴趣
+2. 内容有深度，避免空洞废话
+3. 结构清晰，有小标题分段
+4. 字数控制在800-1500字
+5. 适当使用Markdown格式
+6. 如果需要配图，请在需要图片的位置用 [IMAGE:图片描述] 占位
+
+输出格式：
+{
+  "title": "文章标题",
+  "summary": "文章摘要（100字以内）",
+  "content": "文章完整内容（Markdown格式）",
+  "tags": ["标签1", "标签2", "标签3"]
+}`;
+
+      const results = [];
+      let successCount = 0;
+      let failCount = 0;
+
+      // 逐个生成（避免并发过多）
+      for (const idea of pendingIdeas.results) {
+        try {
+          // 更新状态为生成中
+          await DB.prepare('UPDATE ideas SET status = ? WHERE id = ?').bind('generating', idea.id).run();
+
+          const userPrompt = `请根据以下创意生成一篇文章：
+
+${idea.content}`;
+
+          // 调用 AI 生成
+          const aiRes = await fetch(`${apiBase}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${aiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              temperature: 0.7
+            })
+          });
+
+          const aiData = await aiRes.json();
+          if (!aiData.choices || !aiData.choices[0]) {
+            throw new Error(aiData.error?.message || JSON.stringify(aiData));
+          }
+
+          const content = aiData.choices[0].message?.content;
+          if (!content) {
+            throw new Error('模型返回内容为空');
+          }
+
+          let parsed;
+          try {
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              parsed = JSON.parse(jsonMatch[0]);
+            } else {
+              throw new Error('Not JSON');
+            }
+          } catch {
+            const titleMatch = content.match(/title["\s:]+([^"\n]+)/);
+            const summaryMatch = content.match(/summary["\s:]+([^"\n]+)/);
+            parsed = {
+              title: titleMatch ? titleMatch[1].trim() : idea.content.substring(0, 30),
+              summary: summaryMatch ? summaryMatch[1].trim() : idea.content.substring(0, 100),
+              content: content,
+              tags: []
+            };
+          }
+
+          // 创建文章
+          const tempSlug = 'temp-' + Date.now();
+          const tempResult = await DB.prepare('INSERT INTO articles (title, content, user_id, slug, status) VALUES (?, ?, ?, ?, ?)').bind(parsed.title || idea.content.substring(0, 30), parsed.content || idea.content, user.user_id, tempSlug, 'pending_review').run();
+          const articleId = tempResult.meta.last_row_id;
+          const slug = generateSlug(parsed.title || idea.content, articleId);
+          await DB.prepare('UPDATE articles SET slug = ?, summary = ?, category_id = ? WHERE id = ?').bind(slug, parsed.summary || null, idea.category_id || null, articleId).run();
+
+          // 添加标签
+          if (parsed.tags && parsed.tags.length > 0) {
+            for (const tagName of parsed.tags) {
+              let tag = await DB.prepare('SELECT id FROM tags WHERE name = ?').bind(tagName).first();
+              if (!tag) {
+                const tagResult = await DB.prepare('INSERT INTO tags (name, slug) VALUES (?, ?)').bind(tagName, tagName.toLowerCase().replace(/\s+/g, '-')).run();
+                tag = { id: tagResult.meta.last_row_id };
+              }
+              await DB.prepare('INSERT INTO article_tags (article_id, tag_id) VALUES (?, ?)').bind(articleId, tag.id).run();
+            }
+          }
+
+          // 更新创意状态
+          await DB.prepare('UPDATE ideas SET status = ?, article_id = ? WHERE id = ?').bind('done', articleId, idea.id).run();
+
+          // 记录生成历史
+          await DB.prepare(`INSERT INTO ai_generations (idea_id, article_id, user_id, prompt, model, result, status) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, articleId, user.user_id, idea.content, model, content, 'success').run();
+
+          results.push({ idea_id: idea.id, success: true, article_id: articleId, title: parsed.title });
+          successCount++;
+        } catch (e) {
+          // 更新状态为失败
+          await DB.prepare('UPDATE ideas SET status = ? WHERE id = ?').bind('pending', idea.id).run();
+          
+          // 记录失败
+          try {
+            await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea.id, user.user_id, idea.content, model, '', 'failed', e.message).run();
+          } catch (dbErr) {
+            console.error('记录AI生成失败日志时出错:', dbErr);
+          }
+          
+          results.push({ idea_id: idea.id, success: false, error: e.message });
+          failCount++;
+        }
+      }
+
+      return json({
+        success: true,
+        message: `批量生成完成：成功 ${successCount} 个，失败 ${failCount} 个`,
+        total: pendingIdeas.results.length,
+        success_count: successCount,
+        fail_count: failCount,
+        results
+      }, `完成：成功 ${successCount} 个，失败 ${failCount} 个`);
+    }
+
     // ========== AI 自动修复文章 ==========
     if (path === '/ai/fix' && method === 'POST') {
       const user = await verifyToken(token);

@@ -15,6 +15,7 @@
         </svg>
       </button>
       <h1>创意想法</h1>
+      <button class="add-btn" onclick="batchGenerate()" id="batchBtn" style="background:#67c23a;margin-right:8px;">一键生成全部</button>
       <button class="add-btn" onclick="showAddModal()">+ 新建</button>
     </header>
 
@@ -223,6 +224,31 @@
         await loadIdeas();
       } catch (e) {
         showToast('生成失败: ' + (e.error || '请检查AI配置'));
+      }
+    }
+
+    async function batchGenerate() {
+      const pendingCount = ideas.filter(i => i.status === 'pending').length;
+      if (pendingCount === 0) {
+        showToast('没有待生成的内容');
+        return;
+      }
+      if (!confirm(`确定要生成全部 ${pendingCount} 条待生成内容吗？\nAI会逐个生成，请耐心等待...`)) return;
+      
+      const btn = document.getElementById('batchBtn');
+      btn.disabled = true;
+      btn.textContent = '生成中...';
+      showToast('开始批量生成，请耐心等待...');
+      
+      try {
+        const res = await api.post('/ai/batch-generate', {});
+        showToast(res.message || '批量生成完成');
+        await loadIdeas();
+      } catch (e) {
+        showToast('批量生成失败: ' + (e.error || '请检查AI配置'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '一键生成全部';
       }
     }
 
