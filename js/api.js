@@ -154,11 +154,11 @@ const api = {
   // ========== 评论相关 ==========
 
   // 获取文章评论列表
-  async getComments(articleId) {
-    return this.request(`/comments/${articleId}`);
+  async getComments(articleId, all = false) {
+    return this.request(`/comments/${articleId}${all ? '?all=true' : ''}`);
   },
 
-  // 发表评论
+  // 发表评论（支持问题标记）
   async createComment(data) {
     return this.request('/comments', {
       method: 'POST',
@@ -171,5 +171,139 @@ const api = {
     return this.request(`/comments/${commentId}`, {
       method: 'DELETE'
     });
+  },
+
+  // ========== 创意想法相关 ==========
+
+  // 获取创意列表
+  async getIdeas(status) {
+    return this.request(`/ideas${status ? '?status=' + status : ''}`);
+  },
+
+  // 创建创意
+  async createIdea(data) {
+    return this.request('/ideas', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // 更新创意
+  async updateIdea(id, data) {
+    return this.request(`/idea/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // 删除创意
+  async deleteIdea(id) {
+    return this.request(`/idea/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // ========== 待办任务相关 ==========
+
+  // 获取待办列表
+  async getTasks(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/tasks${query ? '?' + query : ''}`);
+  },
+
+  // 创建待办
+  async createTask(data) {
+    return this.request('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // 更新待办
+  async updateTask(id, data) {
+    return this.request(`/task/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // 删除待办
+  async deleteTask(id) {
+    return this.request(`/task/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // ========== AI相关 ==========
+
+  // AI生成文章
+  async generateArticle(data) {
+    return this.request('/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // AI生成图片
+  async generateImage(data) {
+    return this.request('/ai/image', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // AI修复文章
+  async fixArticle(data) {
+    return this.request('/ai/fix', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  // ========== 审核相关 ==========
+
+  // 获取待审核文章
+  async getPendingReview() {
+    return this.request('/pending-review');
+  },
+
+  // 审核文章
+  async reviewArticle(articleId, action) {
+    return this.request('/article/review', {
+      method: 'POST',
+      body: JSON.stringify({ article_id: articleId, action })
+    });
+  },
+
+  // ========== 附件相关 ==========
+
+  // 获取附件列表
+  async getAttachments() {
+    return this.request('/attachments');
+  },
+
+  // 上传文件
+  async uploadFile(file, onProgress) {
+    const token = this.getToken();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    return res.json();
+  },
+
+  // ========== 导出相关 ==========
+
+  // 一键导出数据
+  async exportData() {
+    const token = this.getToken();
+    const res = await fetch(`${API_BASE}/export`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return res.blob();
   }
 };

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>待办任务</title>
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+  <div id="app">
+    <header class="page-header">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+      </button>
+      <h1>待办任务</h1>
+      <button class="add-btn" onclick="showAddModal()">+ 新建</button>
+    </header>
+
+    <div class="filter-tabs" style="position:fixed;top:48px;left:0;right:0;background:#fff;z-index:99;padding:8px 12px;border-bottom:1px solid #eee;">
+      <div style="display:flex;gap:8px;overflow-x:auto;">
+        <button class="tab active" data-filter="all" onclick="filterTasks('all')" style="flex-shrink:0;">全部</button>
+        <button class="tab" data-filter="user" onclick="filterTasks('user')" style="flex-shrink:0;">我的</button>
+        <button class="tab" data-filter="ai" onclick="filterTasks('ai')" style="flex-shrink:0;">AI任务</button>
+      </div>
+    </div>
+
+    <div class="card-list" id="tasksList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+
+    <!-- 新建任务弹窗 -->
+    <div class="modal" id="addModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">新建待办</h2>
+          <button class="modal-close" onclick="hideAddModal()">&times;</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">任务标题 *</label>
+          <input type="text" class="form-input" id="taskTitle" placeholder="输入任务描述">
+        </div>
+        <div class="form-group">
+          <label class="form-label">执行者</label>
+          <select class="form-input" id="taskAssignee">
+            <option value="user">我自己</option>
+            <option value="ai">AI助手</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">优先级</label>
+          <select class="form-input" id="taskPriority">
+            <option value="1">最低</option>
+            <option value="3">低</option>
+            <option value="5">普通</option>
+            <option value="7">高</option>
+            <option value="9">紧急</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">类型</label>
+          <select class="form-input" id="taskType">
+            <option value="other">其他</option>
+            <option value="generate_article">生成文章</option>
+            <option value="fix_article">修复文章</option>
+            <option value="review">审核</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="createTask()">
+          创建待办
+        </button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let tasks = [];
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadTasks();
+    });
+
+    async function loadTasks() {
+      try {
+        const res = await api.get('/tasks?assignee=all');
+        tasks = res.data || [];
+        renderTasks();
+      } catch (e) {
+        showToast('加载失败');
+      }
+    }
+
+    function filterTasks(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('tasksList');
+      let filtered = tasks;
+      
+      if (currentFilter === 'user') {
+        filtered = tasks.filter(t => t.assignee === 'user');
+      } else if (currentFilter === 'ai') {
+        filtered = tasks.filter(t => t.assignee === 'ai');
+      }
+
+      // 按状态分组
+      const pending = filtered.filter(t => t.status === 'pending');
+      const inProgress = filtered.filter(t => t.status === 'in_progress');
+      const completed = filtered.filter(t => t.status === 'completed');
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state" style="margin-top:80px;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            <p>暂无任务</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+
+      if (pending.length > 0) {
+        html += `<div style="font-size:13px;color:#666;margin-bottom:8px;padding:0 4px;">待处理 (${pending.length})</div>`;
+        html += pending.map(task => renderTaskCard(task)).join('');
+      }
+
+      if (inProgress.length > 0) {
+        html += `<div style="font-size:13px;color:#666;margin:16px 0 8px;padding:0 4px;">进行中 (${inProgress.length})</div>`;
+        html += inProgress.map(task => renderTaskCard(task)).join('');
+      }
+
+      if (completed.length > 0) {
+        html += `<div style="font-size:13px;color:#999;margin:16px 0 8px;padding:0 4px;">已完成 (${completed.length})</div>`;
+        html += completed.slice(0, 5).map(task => renderTaskCard(task, true)).join('');
+      }
+
+      list.innerHTML = html;
+    }
+
+    function renderTaskCard(task, isCompleted = false) {
+      const assigneeLabel = task.assignee === 'ai' ? '🤖 AI' : '👤 我';
+      const typeLabel = getTypeLabel(task.task_type);
+      const priorityStars = '⭐'.repeat(task.priority || 5);
+
+      return `
+        <div class="card ${isCompleted ? 'completed' : ''}" style="${isCompleted ? 'opacity:0.6;' : ''}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            ${!isCompleted ? `<input type="checkbox" onchange="completeTask(${task.id}, this.checked)" style="width:20px;height:20px;">` : ''}
+            <div style="flex:1;">
+              <span style="font-size:12px;color:#666;">${assigneeLabel}</span>
+              <span style="font-size:12px;color:#1a73e8;margin-left:8px;">${typeLabel}</span>
+            </div>
+            ${!isCompleted && task.priority > 7 ? `<span style="color:#e53935;font-size:11px;">${priorityStars}</span>` : ''}
+          </div>
+          <p class="card-content" style="${isCompleted ? 'text-decoration:line-through;' : ''}">${escapeHtml(task.title)}</p>
+          ${task.related_article_id ? `<a href="article.html?id=${task.related_article_id}" style="font-size:12px;color:#1a73e8;" onclick="event.stopPropagation()">查看关联文章 →</a>` : ''}
+          ${task.description ? `<p style="font-size:12px;color:#999;margin-top:6px;">${escapeHtml(task.description)}</p>` : ''}
+          ${!isCompleted ? `<button class="btn btn-outline" style="margin-top:8px;padding:4px 8px;font-size:12px;" onclick="deleteTask(${task.id})">删除</button>` : ''}
+        </div>
+      `;
+    }
+
+    function getTypeLabel(type) {
+      const map = {
+        'generate_article': '📝 生成文章',
+        'fix_article': '🔧 修复文章',
+        'review': '✅ 审核',
+        'other': '📋 其他'
+      };
+      return map[type] || '📋 其他';
+    }
+
+    function showAddModal() {
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    function hideAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+      document.getElementById('taskTitle').value = '';
+    }
+
+    async function createTask() {
+      const title = document.getElementById('taskTitle').value.trim();
+      if (!title) {
+        showToast('请输入任务标题');
+        return;
+      }
+
+      const assignee = document.getElementById('taskAssignee').value;
+      const priority = parseInt(document.getElementById('taskPriority').value);
+      const task_type = document.getElementById('taskType').value;
+
+      try {
+        await api.post('/tasks', { title, assignee, priority, task_type });
+        showToast('任务已创建');
+        hideAddModal();
+        await loadTasks();
+      } catch (e) {
+        showToast('创建失败');
+      }
+    }
+
+    async function completeTask(id, completed) {
+      try {
+        await api.put(`/task/${id}`, { status: completed ? 'completed' : 'pending' });
+        showToast(completed ? '任务已完成 ✓' : '任务已恢复');
+        await loadTasks();
+      } catch (e) {
+        showToast('操作失败');
+      }
+    }
+
+    async function deleteTask(id) {
+      if (!confirm('确定删除此任务?')) return;
+      try {
+        await api.delete(`/task/${id}`);
+        showToast('已删除');
+        await loadTasks();
+      } catch (e) {
+        showToast('删除失败');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>

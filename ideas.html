@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>创意想法</title>
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+  <div id="app">
+    <header class="page-header">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+      </button>
+      <h1>创意想法</h1>
+      <button class="add-btn" onclick="showAddModal()">+ 新建</button>
+    </header>
+
+    <div class="filter-tabs" style="position:fixed;top:48px;left:0;right:0;background:#fff;z-index:99;padding:8px 12px;border-bottom:1px solid #eee;">
+      <div style="display:flex;gap:8px;overflow-x:auto;">
+        <button class="tab active" data-filter="all" onclick="filterIdeas('all')" style="flex-shrink:0;">全部</button>
+        <button class="tab" data-filter="pending" onclick="filterIdeas('pending')" style="flex-shrink:0;">待生成</button>
+        <button class="tab" data-filter="generating" onclick="filterIdeas('generating')" style="flex-shrink:0;">生成中</button>
+        <button class="tab" data-filter="done" onclick="filterIdeas('done')" style="flex-shrink:0;">已完成</button>
+      </div>
+    </div>
+
+    <div class="card-list" id="ideasList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+
+    <!-- 新建创意弹窗 -->
+    <div class="modal" id="addModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">新建创意</h2>
+          <button class="modal-close" onclick="hideAddModal()">&times;</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">创意内容 *</label>
+          <textarea class="form-input form-textarea" id="ideaContent" placeholder="简要描述你的创意想法..." rows="4"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">优先级</label>
+          <select class="form-input" id="ideaPriority">
+            <option value="0">普通</option>
+            <option value="3">一般</option>
+            <option value="5">重要</option>
+            <option value="7">紧急</option>
+            <option value="9">最高</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">标签（用逗号分隔）</label>
+          <input type="text" class="form-input" id="ideaTags" placeholder="例如: 科技, 生活">
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="createIdea()">
+          提交创意
+        </button>
+      </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="modal" id="detailModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">创意详情</h2>
+          <button class="modal-close" onclick="hideDetailModal()">&times;</button>
+        </div>
+        <div id="detailContent"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    let ideas = [];
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadIdeas();
+    });
+
+    async function loadIdeas() {
+      try {
+        const res = await api.get('/ideas');
+        ideas = res.data || [];
+        renderIdeas();
+      } catch (e) {
+        showToast('加载失败');
+      }
+    }
+
+    function filterIdeas(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+      renderIdeas();
+    }
+
+    function renderIdeas() {
+      const list = document.getElementById('ideasList');
+      const filtered = currentFilter === 'all' ? ideas : ideas.filter(i => i.status === currentFilter);
+      
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state" style="margin-top:80px;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <p>${currentFilter === 'all' ? '暂无创意' : '暂无此类创意'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = filtered.map(idea => `
+        <div class="card" onclick="showIdeaDetail(${idea.id})">
+          <div class="card-header">
+            <span class="tag tag-${idea.status}">${getStatusText(idea.status)}</span>
+            ${idea.priority > 5 ? '<span style="color:#e53935;font-size:12px;">⚡ 紧急</span>' : ''}
+          </div>
+          <p class="card-content">${escapeHtml(idea.content)}</p>
+          ${idea.article_id ? `<a href="article.html?id=${idea.article_id}" class="btn btn-outline" style="margin-top:8px;padding:6px 12px;font-size:12px;" onclick="event.stopPropagation()">查看已生成文章 →</a>` : ''}
+          <div class="card-meta" style="margin-top:8px;">
+            ${idea.tags ? idea.tags.split(',').map(t => `<span style="background:#f0f0f0;padding:2px 6px;border-radius:4px;margin-right:4px;font-size:11px;">${t.trim()}</span>`).join('') : ''}
+            <span style="margin-left:auto;">${formatDate(idea.created_at)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getStatusText(status) {
+      const map = { pending: '待生成', generating: '生成中', done: '已完成' };
+      return map[status] || status;
+    }
+
+    function showAddModal() {
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    function hideAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+      document.getElementById('ideaContent').value = '';
+      document.getElementById('ideaTags').value = '';
+    }
+
+    async function createIdea() {
+      const content = document.getElementById('ideaContent').value.trim();
+      if (!content) {
+        showToast('请输入创意内容');
+        return;
+      }
+      const priority = parseInt(document.getElementById('ideaPriority').value);
+      const tags = document.getElementById('ideaTags').value.trim();
+
+      try {
+        await api.post('/ideas', { content, priority, tags: tags || null });
+        showToast('创意已添加，AI将自动生成文章');
+        hideAddModal();
+        await loadIdeas();
+      } catch (e) {
+        showToast('添加失败');
+      }
+    }
+
+    async function showIdeaDetail(id) {
+      const idea = ideas.find(i => i.id === id);
+      if (!idea) return;
+
+      document.getElementById('detailContent').innerHTML = `
+        <div style="margin-bottom:16px;">
+          <span class="tag tag-${idea.status}">${getStatusText(idea.status)}</span>
+        </div>
+        <p style="font-size:15px;line-height:1.8;margin-bottom:16px;">${escapeHtml(idea.content)}</p>
+        ${idea.tags ? `<p style="font-size:13px;color:#666;margin-bottom:16px;">标签: ${idea.tags}</p>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${idea.article_id ? `<a href="article.html?id=${idea.article_id}" class="btn btn-primary">查看文章</a>` : ''}
+          ${idea.status !== 'done' ? `<button class="btn btn-outline" onclick="generateArticle(${idea.id})">AI生成文章</button>` : ''}
+          <button class="btn btn-danger" onclick="deleteIdea(${idea.id})">删除</button>
+        </div>
+        <p style="font-size:12px;color:#999;margin-top:16px;">创建时间: ${idea.created_at}</p>
+      `;
+      document.getElementById('detailModal').classList.add('show');
+    }
+
+    function hideDetailModal() {
+      document.getElementById('detailModal').classList.remove('show');
+    }
+
+    async function generateArticle(id) {
+      showToast('正在生成...');
+      try {
+        const idea = ideas.find(i => i.id === id);
+        await api.post('/ai/generate', { idea_id: id, idea_content: idea.content });
+        showToast('文章生成成功');
+        hideDetailModal();
+        await loadIdeas();
+      } catch (e) {
+        showToast('生成失败: ' + (e.error || '请检查AI配置'));
+      }
+    }
+
+    async function deleteIdea(id) {
+      if (!confirm('确定删除此创意?')) return;
+      try {
+        await api.delete(`/idea/${id}`);
+        showToast('已删除');
+        hideDetailModal();
+        await loadIdeas();
+      } catch (e) {
+        showToast('删除失败');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
