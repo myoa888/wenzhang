@@ -621,9 +621,13 @@ ${issues}
       }
     }
 
-    // Parse JSON body for non-upload requests
-    if (method !== 'GET' && method !== 'HEAD') {
-      try { body = await request.json(); } catch (e) {}
+    // Parse JSON body for non-upload / non-multipart requests
+    // 必须在所有需要 body 的 API 之前解析
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      const ct = request.headers.get('content-type') || '';
+      if (!ct.includes('multipart/form-data')) {
+        try { body = await request.json(); } catch (e) {}
+      }
     }
 
     try {
