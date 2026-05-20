@@ -210,11 +210,15 @@ class IdeasPage extends Page {
     Components.toast('正在生成...');
     try {
       const idea = this.allIdeas.find(i => i.id === id);
-      await api.post('/ai/generate', { idea_id: id, idea_content: idea.content });
+      if (!idea) throw new Error('创意不存在');
+      const res = await api.post('/ai/generate', { idea_id: id, idea_content: idea.content });
       Components.toast('文章生成成功');
       await this.loadIdeas();
     } catch (e) {
-      Components.toast('生成失败: ' + (e.error || '请检查AI配置'));
+      console.error('生成失败:', e);
+      // 尝试从错误对象中提取错误信息
+      const msg = e?.error || e?.message || (typeof e === 'string' ? e : '请检查AI配置');
+      Components.toast('生成失败: ' + msg);
     }
   }
 
@@ -237,7 +241,9 @@ class IdeasPage extends Page {
       Components.toast(res.message || '批量生成完成');
       await this.loadIdeas();
     } catch (e) {
-      Components.toast('批量生成失败: ' + (e.error || '请检查AI配置'));
+      console.error('批量生成失败:', e);
+      const msg = e?.error || e?.message || (typeof e === 'string' ? e : '请检查AI配置');
+      Components.toast('批量生成失败: ' + msg);
     } finally {
       btn.disabled = false;
       btn.textContent = '✨ 一键生成';

@@ -248,12 +248,15 @@
       showToast('正在生成...');
       try {
         const idea = ideas.find(i => i.id === id);
+        if (!idea) throw new Error('创意不存在');
         await api.post('/ai/generate', { idea_id: id, idea_content: idea.content });
         showToast('文章生成成功');
         hideDetailModal();
         await loadIdeas();
       } catch (e) {
-        showToast('生成失败: ' + (e.error || '请检查AI配置'));
+        console.error('生成失败:', e);
+        const msg = e?.error || e?.message || (typeof e === 'string' ? e : '请检查AI配置');
+        showToast('生成失败: ' + msg);
       }
     }
 
@@ -275,7 +278,9 @@
         showToast(res.message || '批量生成完成');
         await loadIdeas();
       } catch (e) {
-        showToast('批量生成失败: ' + (e.error || '请检查AI配置'));
+        console.error('批量生成失败:', e);
+        const msg = e?.error || e?.message || (typeof e === 'string' ? e : '请检查AI配置');
+        showToast('批量生成失败: ' + msg);
       } finally {
         btn.disabled = false;
         btn.textContent = '一键生成全部';
