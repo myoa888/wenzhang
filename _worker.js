@@ -404,8 +404,8 @@ export default {
       if (!idea_content) return error('请提供创意内容');
 
       try {
-        // 获取 DeepSeek API key (免费额度大)
-        const deepseekKey = env.DEEPSEEK_API_KEY;
+        // 获取 DeepSeek API key
+        const deepseekKey = env.DEEPSEEK_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
         const qwenKey = env.QWEN_API_KEY;
         const aiKey = deepseekKey || qwenKey;
         
