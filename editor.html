@@ -6,20 +6,24 @@
   <title>写文章 - 文章管理系统</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/spa.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
 </head>
 <body>
-  <header class="header editor-header">
-    <div class="container header-content">
-      <a href="manage.html" class="logo">返回管理</a>
-      <div class="editor-actions">
-        <button onclick="saveDraft()" class="btn">保存草稿</button>
-        <button onclick="publishArticle()" class="btn btn-primary">发布</button>
-      </div>
+  <header class="page-header">
+    <a href="manage.html" class="back-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"></path>
+      </svg>
+    </a>
+    <h1>写文章</h1>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveDraft()" class="add-btn" style="background:#909399;">草稿</button>
+      <button onclick="publishArticle()" class="add-btn" style="background:#409eff;">发布</button>
     </div>
   </header>
 
-  <main class="editor-main">
+  <main class="editor-main" style="padding-top:48px;">
     <div class="editor-container">
       <input type="text" id="title" class="editor-title" placeholder="文章标题" maxlength="100">
       
