@@ -255,9 +255,10 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
-    // Parse JSON body for non-upload / non-multipart requests
-    // 必须在所有需要 body 的 API 之前解析
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    try {
+      // Parse JSON body for non-upload / non-multipart requests
+      // 必须在所有需要 body 的 API 之前解析
+      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
       const ct = request.headers.get('content-type') || '';
       if (!ct.includes('multipart/form-data')) {
         try { body = await request.json(); } catch (e) {}
@@ -464,10 +465,13 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
 
         const aiData = await aiRes.json();
         if (!aiData.choices || !aiData.choices[0]) {
-          return error('AI生成失败: ' + (aiData.error?.message || '未知错误'), 500);
+          return error('AI生成失败: ' + (aiData.error?.message || JSON.stringify(aiData)), 500);
         }
 
-        const content = aiData.choices[0].message.content;
+        const content = aiData.choices[0].message?.content;
+        if (!content) {
+          return error('AI生成失败: ' + (aiData.error?.message || '模型返回内容为空'), 500);
+        }
         let parsed;
         try {
           // 尝试解析 JSON
@@ -523,8 +527,12 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
           slug 
         }, '文章生成成功');
       } catch (e) {
-        // 记录失败
-        await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, user.user_id, idea_content, model || 'unknown', '', 'failed', e.message).run();
+        // 记录失败（保护式写入，避免二次异常）
+        try {
+          await DB.prepare(`INSERT INTO ai_generations (idea_id, user_id, prompt, model, result, status, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(idea_id || null, user.user_id, idea_content, model || 'unknown', '', 'failed', e.message).run();
+        } catch (dbErr) {
+          console.error('记录AI生成失败日志时出错:', dbErr);
+        }
         return error('生成失败: ' + e.message, 500);
       }
     }
@@ -1273,5 +1281,9 @@ ${issues}
       console.error(e);
       return error('服务器错误: ' + e.message, 500);
     }
+  } catch (e) {
+    console.error('Unhandled API exception:', e);
+    return error('服务器内部错误: ' + e.message, 500);
+  }
   }
 };
