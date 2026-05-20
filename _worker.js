@@ -297,7 +297,7 @@ export default {
         await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`)
           .bind(user.user_id, filename, originalName, mimeType, size, env.ASSETS_BUCKET ? filename : 'base64-inline', storedUrl).run();
 
-        return json({ url: storedUrl, filename, originalName, size });
+        return success({ url: storedUrl, filename, originalName, size }, '上传成功');
       } catch (e) {
         return error('上传失败: ' + e.message, 500);
       }
