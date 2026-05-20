@@ -379,8 +379,8 @@ export default {
         let imageUrl = null;
 
         // 使用 SiliconFlow API (需要配置)
-        const imgApiKey = env.IMAGE_API_KEY;
-        if (imgApiKey) {
+        const imgApiKey = env.IMAGE_API_KEY || 'sk-sapjibitygyiqnqfpcvjpaqpvprxnodwvdjmijvfobnyudap';
+        try {
           const res = await fetch('https://api.siliconflow.cn/v1/image/generations', {
             method: 'POST',
             headers: {
@@ -393,27 +393,37 @@ export default {
               image_size: `${width}x${height}`
             })
           });
-          const data = await res.json();
-          if (data.images && data.images[0]) {
-            imageUrl = data.images[0].url;
+          if (res.ok) {
+            const data = await res.json();
+            if (data.images && data.images[0]) {
+              imageUrl = data.images[0].url;
+            }
           }
+        } catch (sfErr) {
+          console.log('SiliconFlow 图片API不可用:', sfErr.message);
         }
         
         // 备用：使用免费 Z-Image API (无需key)
         if (!imageUrl) {
-          const zImageRes = await fetch('https://zimage.run/api/v1/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, width, height })
-          });
-          const zData = await zImageRes.json();
-          if (zData.image_url) {
-            imageUrl = zData.image_url;
+          try {
+            const zImageRes = await fetch('https://zimage.run/api/v1/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt, width, height })
+            });
+            if (zImageRes.ok) {
+              const zData = await zImageRes.json();
+              if (zData.image_url) {
+                imageUrl = zData.image_url;
+              }
+            }
+          } catch (zErr) {
+            console.log('Z-Image API不可用:', zErr.message);
           }
         }
         
         if (!imageUrl) {
-          return error('图片生成服务暂时不可用', 503);
+          return error('图片生成服务暂时不可用，请稍后重试', 503);
         }
 
         // 如果配置了 R2 Storage，下载图片并保存到 R2
@@ -574,21 +584,29 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
                   image_size: '1024x1024'
                 })
               });
-              const imgData = await imgRes.json();
-              if (imgData.images && imgData.images[0]) {
-                imageUrl = imgData.images[0].url;
+              if (imgRes.ok) {
+                const imgData = await imgRes.json();
+                if (imgData.images && imgData.images[0]) {
+                  imageUrl = imgData.images[0].url;
+                }
               }
 
               // 备用：使用免费 Z-Image API
               if (!imageUrl) {
-                const zRes = await fetch('https://zimage.run/api/v1/generate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ prompt, width: 1024, height: 1024 })
-                });
-                const zData = await zRes.json();
-                if (zData.image_url) {
-                  imageUrl = zData.image_url;
+                try {
+                  const zRes = await fetch('https://zimage.run/api/v1/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, width: 1024, height: 1024 })
+                  });
+                  if (zRes.ok) {
+                    const zData = await zRes.json();
+                    if (zData.image_url) {
+                      imageUrl = zData.image_url;
+                    }
+                  }
+                } catch (zErr) {
+                  console.log('Z-Image API 不可用');
                 }
               }
 
@@ -596,9 +614,14 @@ ${image_prompts && image_prompts.length > 0 ? '\n建议配图描述：' + image_
                 // 替换占位符为实际图片
                 finalContent = finalContent.replace(match, `\n![${prompt}](${imageUrl})\n`);
                 console.log(`图片生成成功: ${imageUrl}`);
+              } else {
+                // 图片生成失败，移除占位符
+                finalContent = finalContent.replace(match, '');
+                console.log(`图片生成失败，已移除占位符`);
               }
             } catch (imgErr) {
-              console.error('生成图片失败:', imgErr);
+              console.error('生成图片异常:', imgErr);
+              finalContent = finalContent.replace(match, '');
             }
             // 避免请求过快
             await new Promise(r => setTimeout(r, 500));
@@ -763,24 +786,35 @@ ${idea.content}`;
                   headers: { 'Authorization': `Bearer ${imgApiKey}`, 'Content-Type': 'application/json' },
                   body: JSON.stringify({ model: 'stabilityai/stable-diffusion-3-medium', prompt, image_size: '1024x1024' })
                 });
-                const imgData = await imgRes.json();
-                if (imgData.images && imgData.images[0]) {
-                  imageUrl = imgData.images[0].url;
+                if (imgRes.ok) {
+                  const imgData = await imgRes.json();
+                  if (imgData.images && imgData.images[0]) {
+                    imageUrl = imgData.images[0].url;
+                  }
                 }
                 if (!imageUrl) {
-                  const zRes = await fetch('https://zimage.run/api/v1/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, width: 1024, height: 1024 })
-                  });
-                  const zData = await zRes.json();
-                  if (zData.image_url) imageUrl = zData.image_url;
+                  try {
+                    const zRes = await fetch('https://zimage.run/api/v1/generate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ prompt, width: 1024, height: 1024 })
+                    });
+                    if (zRes.ok) {
+                      const zData = await zRes.json();
+                      if (zData.image_url) imageUrl = zData.image_url;
+                    }
+                  } catch (zErr) {
+                    console.log('Z-Image API 不可用');
+                  }
                 }
                 if (imageUrl) {
                   finalContent = finalContent.replace(match, `\n![${prompt}](${imageUrl})\n`);
+                } else {
+                  finalContent = finalContent.replace(match, '');
                 }
               } catch (imgErr) {
-                console.error('生成图片失败:', imgErr);
+                console.error('生成图片异常:', imgErr);
+                finalContent = finalContent.replace(match, '');
               }
               await new Promise(r => setTimeout(r, 500));
             }
