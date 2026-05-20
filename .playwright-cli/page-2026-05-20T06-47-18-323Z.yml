@@ -1,0 +1,24 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - button [ref=e4] [cursor=pointer]:
+      - img [ref=e5]
+    - heading "待办任务" [level=1] [ref=e7]
+    - generic [ref=e8]:
+      - button "🤖 AI" [ref=e9] [cursor=pointer]
+      - button "+ 新建" [ref=e10] [cursor=pointer]
+  - generic [ref=e12]:
+    - button "全部" [ref=e13] [cursor=pointer]
+    - button "我的" [ref=e14] [cursor=pointer]
+    - button "AI任务" [ref=e15] [cursor=pointer]
+  - generic [ref=e17]: 加载中...
+  - option "我自己" [selected]
+  - option "AI助手"
+  - option "最低" [selected]
+  - option "低"
+  - option "普通"
+  - option "高"
+  - option "紧急"
+  - option "其他" [selected]
+  - option "生成文章"
+  - option "修复文章"
+  - option "审核"

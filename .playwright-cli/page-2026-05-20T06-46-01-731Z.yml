@@ -1,0 +1,27 @@
+- generic [ref=e3]:
+  - heading "📝 文章管理系统" [level=1] [ref=e4]
+  - heading "注册" [level=2] [ref=e5]
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: 用户名
+      - textbox "用户名" [ref=e9]:
+        - /placeholder: 3-20个字符
+    - generic [ref=e10]:
+      - generic [ref=e11]: 邮箱（可选）
+      - textbox "邮箱（可选）" [ref=e12]:
+        - /placeholder: 用于找回密码
+    - generic [ref=e13]:
+      - generic [ref=e14]: 密码
+      - textbox "密码" [ref=e15]:
+        - /placeholder: 至少6个字符
+    - generic [ref=e16]:
+      - generic [ref=e17]: 确认密码
+      - textbox "确认密码" [ref=e18]:
+        - /placeholder: 再次输入密码
+    - button "注册" [ref=e20] [cursor=pointer]
+    - paragraph [ref=e21]:
+      - text: 已有账号？
+      - link "立即登录" [ref=e22] [cursor=pointer]:
+        - /url: login.html
+  - link "← 返回首页" [ref=e24] [cursor=pointer]:
+    - /url: index.html

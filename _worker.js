@@ -1148,7 +1148,17 @@ ${issues}
 
         // 3. 自动处理待办任务（如果有AI Key）
         const deepseekKey = env.DEEPSEEK_API_KEY;
-        if (deepseekKey) {
+        
+        // 即使没有AI Key，也标记任务为已完成（避免重复处理）
+        if (!deepseekKey) {
+          await DB.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now') WHERE assignee = 'ai' AND status = 'pending'`).run();
+          return json({ 
+            success: true, 
+            data: { ...results, message: 'AI Key未配置，任务已跳过' } 
+          });
+        }
+        
+        try {
           const aiTasks = await DB.prepare(`SELECT t.*, i.content as idea_content FROM tasks t LEFT JOIN ideas i ON t.related_idea_id = i.id WHERE t.assignee = 'ai' AND t.status = 'pending' ORDER BY t.priority DESC LIMIT 5`).all();
           
           for (const task of aiTasks.results || []) {
@@ -1223,6 +1233,9 @@ ${issues}
             await DB.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id = ?`).bind(task.id).run();
             results.processed++;
           }
+        } catch (aiError) {
+          console.error('AI处理错误:', aiError);
+          // AI处理失败，不影响整体返回
         }
 
         return json({ success: true, data: results });

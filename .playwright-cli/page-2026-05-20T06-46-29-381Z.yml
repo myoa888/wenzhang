@@ -1,0 +1,17 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - button [ref=e4] [cursor=pointer]:
+      - img [ref=e5]
+    - heading "创意想法" [level=1] [ref=e7]
+    - button "+ 新建" [ref=e8] [cursor=pointer]
+  - generic [ref=e10]:
+    - button "全部" [ref=e11] [cursor=pointer]
+    - button "待生成" [ref=e12] [cursor=pointer]
+    - button "生成中" [ref=e13] [cursor=pointer]
+    - button "已完成" [ref=e14] [cursor=pointer]
+  - generic [ref=e16]: 加载中...
+  - option "普通" [selected]
+  - option "一般"
+  - option "重要"
+  - option "紧急"
+  - option "最高"

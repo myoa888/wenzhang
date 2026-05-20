@@ -1,0 +1,68 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - button [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - heading "资讯" [level=1] [ref=e7]
+    - button [ref=e9] [cursor=pointer]:
+      - img [ref=e10]
+  - navigation [ref=e13]:
+    - generic [ref=e14]:
+      - button "推荐" [ref=e15] [cursor=pointer]
+      - button "技术" [ref=e16] [cursor=pointer]
+      - button "生活" [ref=e17] [cursor=pointer]
+      - button "笔记" [ref=e18] [cursor=pointer]
+      - button "待审核" [ref=e19] [cursor=pointer]
+  - main [ref=e20]:
+    - generic: 下拉刷新
+    - generic [ref=e22]: 加载中...
+  - navigation [ref=e24]:
+    - link "首页" [ref=e25] [cursor=pointer]:
+      - /url: mobile.html
+      - img [ref=e26]
+      - generic [ref=e29]: 首页
+    - link "创意" [ref=e30] [cursor=pointer]:
+      - /url: ideas.html
+      - img [ref=e31]
+      - generic [ref=e36]: 创意
+    - link "待办" [ref=e37] [cursor=pointer]:
+      - /url: tasks.html
+      - img [ref=e38]
+      - generic [ref=e41]: 待办
+    - link "我的" [ref=e42] [cursor=pointer]:
+      - /url: index.html
+      - img [ref=e43]
+      - generic [ref=e48]: 我的
+  - generic [ref=e49]:
+    - generic [ref=e50]:
+      - img "avatar" [ref=e51]
+      - generic [ref=e52]:
+        - generic [ref=e53]: 未登录
+        - generic [ref=e54]: 自媒体创作者
+    - generic [ref=e55]:
+      - link "首页" [ref=e56] [cursor=pointer]:
+        - /url: mobile.html
+        - img [ref=e57]
+        - text: 首页
+      - link "我的创意" [ref=e59] [cursor=pointer]:
+        - /url: ideas.html
+        - img [ref=e60]
+        - text: 我的创意
+      - link "待办任务" [ref=e62] [cursor=pointer]:
+        - /url: tasks.html
+        - img [ref=e63]
+        - text: 待办任务
+      - link "管理后台" [ref=e66] [cursor=pointer]:
+        - /url: manage.html
+        - img [ref=e67]
+        - text: 管理后台
+      - link "写文章" [ref=e70] [cursor=pointer]:
+        - /url: editor.html
+        - img [ref=e71]
+        - text: 写文章
+      - link "退出登录" [ref=e75] [cursor=pointer]:
+        - /url: "#"
+        - img [ref=e76]
+        - text: 退出登录
+  - generic [ref=e80]:
+    - textbox "搜索文章..." [ref=e81]
+    - button "取消" [ref=e82] [cursor=pointer]
