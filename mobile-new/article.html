@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>文章详情</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/css.min.js"></script>
+  <style>
+    .article-detail-content pre {
+      position: relative;
+    }
+    .article-detail-content pre code {
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+    .article-actions {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .action-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .action-btn:active {
+      opacity: 0.8;
+    }
+    .action-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+    .action-btn.outline {
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <a href="mobile.html" class="header-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <span class="header-title">文章详情</span>
+      <button class="header-action" id="editBtn" style="display: none;">编辑</button>
+    </header>
+
+    <!-- 内容 -->
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="article-actions" id="actions" style="display: none;">
+      <button class="action-btn outline" onclick="goBack()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        返回
+      </button>
+      <button class="action-btn primary" id="shareBtn" onclick="shareArticle()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        分享
+      </button>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let article = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      
+      if (!id) {
+        showError('缺少文章ID');
+        return;
+      }
+      
+      // 检查是否是作者
+      const user = Api.getUser();
+      
+      try {
+        const res = await Api.getArticle(id);
+        article = res.data;
+        
+        if (!article) {
+          showError('文章不存在');
+          return;
+        }
+        
+        renderArticle(article);
+        
+        // 如果是作者，显示编辑按钮
+        if (user && article.user_id === user.id) {
+          document.getElementById('editBtn').style.display = 'block';
+          document.getElementById('editBtn').onclick = () => {
+            location.href = `editor.html?id=${id}`;
+          };
+        }
+        
+        document.getElementById('actions').style.display = 'flex';
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    function renderArticle(article) {
+      const container = document.getElementById('content');
+      
+      // 配置 marked
+      marked.setOptions({
+        highlight: function(code, lang) {
+          if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, { language: lang }).value;
+          }
+          return hljs.highlightAuto(code).value;
+        },
+        breaks: true
+      });
+      
+      const content = marked.parse(article.content || '');
+      const cover = article.cover_image;
+      const date = formatDate(article.created_at);
+      const readTime = formatReadTime(article.content);
+      
+      container.innerHTML = `
+        <div class="article-detail">
+          <div class="article-detail-header">
+            <h1 class="article-detail-title">${article.title}</h1>
+            <div class="article-detail-meta">
+              <span>${date}</span>
+              <span>${readTime} 分钟阅读</span>
+              ${article.category ? `<span>${article.category}</span>` : ''}
+            </div>
+            ${cover ? `<img class="article-detail-cover" src="${cover}" alt="">` : ''}
+          </div>
+          <div class="article-detail-content">${content}</div>
+          <div style="padding: 40px 16px;"></div>
+        </div>
+      `;
+    }
+
+    function showError(message) {
+      document.getElementById('content').innerHTML = `
+        <div class="error-state">
+          <p>${message}</p>
+          <button class="btn btn-outline" style="margin-top: 16px; width: auto; padding: 0 24px;" onclick="goBack()">返回</button>
+        </div>
+      `;
+    }
+
+    function goBack() {
+      if (history.length > 1) {
+        history.back();
+      } else {
+        location.href = 'mobile.html';
+      }
+    }
+
+    function shareArticle() {
+      if (navigator.share) {
+        navigator.share({
+          title: article.title,
+          text: article.summary || '',
+          url: location.href
+        });
+      } else {
+        // 复制链接
+        navigator.clipboard.writeText(location.href).then(() => {
+          showToast('链接已复制');
+        });
+      }
+    }
+  </script>
+</body>
+</html>

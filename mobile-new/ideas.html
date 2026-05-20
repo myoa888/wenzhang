@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>创意管理</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <style>
+    .idea-list {
+      padding: 16px;
+    }
+    .idea-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      position: relative;
+    }
+    .idea-content {
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .idea-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #999;
+    }
+    .idea-category {
+      padding: 2px 8px;
+      background: #f0f0f0;
+      border-radius: 10px;
+    }
+    .idea-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .idea-tag {
+      padding: 2px 8px;
+      background: rgba(0,122,255,0.1);
+      color: #007AFF;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+    .idea-status {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+    .idea-status.pending {
+      background: #FFF3E0;
+      color: #FF9500;
+    }
+    .idea-status.done {
+      background: #E8F5E9;
+      color: #34C759;
+    }
+    .idea-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .idea-actions button {
+      flex: 1;
+      height: 32px;
+      border-radius: 16px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <a href="mobile.html" class="header-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <span class="header-title">创意管理</span>
+      <button class="header-action" onclick="showAddModal()">新建</button>
+    </header>
+
+    <!-- 分类筛选 -->
+    <div class="categories" id="categories" style="margin-top: 72px;">
+      <span class="category-tag active" data-id="">全部</span>
+    </div>
+
+    <!-- 创意列表 -->
+    <div class="idea-list" id="ideaList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="tabbar">
+      <a href="mobile.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>首页</span>
+      </a>
+      <a href="search.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <span>搜索</span>
+      </a>
+      <a href="editor.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span>写作</span>
+      </a>
+      <a href="my.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- 新建/编辑弹窗 -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal" style="max-height: 85vh; overflow-y: auto;">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle">新建创意</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ideaId">
+        
+        <div class="form-group">
+          <label class="form-label">创意内容</label>
+          <textarea class="form-input" id="ideaContent" rows="4" placeholder="描述你的创意..." style="height: auto;"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">分类</label>
+          <select class="form-input" id="ideaCategory">
+            <option value="">请选择</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">标签（多个用逗号分隔）</label>
+          <input type="text" class="form-input" id="ideaTags" placeholder="例如：科技,生活">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveIdea()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const IDEAS_KEY = 'my_ideas';
+    let ideas = [];
+    let categories = [];
+    let filterCategory = '';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 检查登录
+      if (!Api.isLoggedIn()) {
+        showToast('请先登录');
+        setTimeout(() => location.href = 'login.html', 1000);
+        return;
+      }
+      
+      await loadCategories();
+      loadIdeas();
+    });
+
+    async function loadCategories() {
+      try {
+        const res = await Api.getCategories();
+        categories = res.data || [];
+        
+        const container = document.getElementById('categories');
+        let html = '<span class="category-tag active" data-id="">全部</span>';
+        categories.forEach(cat => {
+          html += `<span class="category-tag" data-id="${cat.id}">${cat.name}</span>`;
+        });
+        container.innerHTML = html;
+        
+        // 绑定筛选
+        container.querySelectorAll('.category-tag').forEach(tag => {
+          tag.addEventListener('click', () => {
+            container.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            filterCategory = tag.dataset.id;
+            loadIdeas();
+          });
+        });
+        
+        // 填充下拉框
+        const select = document.getElementById('ideaCategory');
+        categories.forEach(cat => {
+          select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+        });
+      } catch (e) {
+        console.error('加载分类失败', e);
+      }
+    }
+
+    function loadIdeas() {
+      ideas = JSON.parse(localStorage.getItem(IDEAS_KEY) || '[]');
+      renderIdeas();
+    }
+
+    function renderIdeas() {
+      const container = document.getElementById('ideaList');
+      
+      let filtered = ideas;
+      if (filterCategory) {
+        filtered = ideas.filter(i => i.category_id == filterCategory);
+      }
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>暂无创意</p>
+            <button class="btn btn-outline" style="margin-top: 16px;" onclick="showAddModal()">记录创意</button>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = filtered.map(idea => {
+        const cat = categories.find(c => c.id == idea.category_id);
+        const tags = idea.tags ? idea.tags.split(',') : [];
+        
+        return `
+          <div class="idea-card">
+            <div class="idea-status ${idea.status || 'pending'}">${idea.status === 'done' ? '已完成' : '待处理'}</div>
+            <div class="idea-content">${idea.content}</div>
+            <div class="idea-meta">
+              <span>${formatDate(idea.createdAt)}</span>
+              ${cat ? `<span class="idea-category">${cat.name}</span>` : ''}
+            </div>
+            ${tags.length ? `
+              <div class="idea-tags">
+                ${tags.map(t => `<span class="idea-tag">${t.trim()}</span>`).join('')}
+              </div>
+            ` : ''}
+            <div class="idea-actions">
+              <button class="btn btn-outline" onclick="toggleStatus('${idea.id}')">${idea.status === 'done' ? '标记待处理' : '标记完成'}</button>
+              <button class="btn btn-outline" onclick="editIdea('${idea.id}')">编辑</button>
+              <button class="btn btn-outline" style="color: #ff3b30;" onclick="deleteIdea('${idea.id}')">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = '新建创意';
+      document.getElementById('ideaId').value = '';
+      document.getElementById('ideaContent').value = '';
+      document.getElementById('ideaCategory').value = '';
+      document.getElementById('ideaTags').value = '';
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function editIdea(id) {
+      const idea = ideas.find(i => i.id === id);
+      if (!idea) return;
+      
+      document.getElementById('modalTitle').textContent = '编辑创意';
+      document.getElementById('ideaId').value = idea.id;
+      document.getElementById('ideaContent').value = idea.content;
+      document.getElementById('ideaCategory').value = idea.category_id || '';
+      document.getElementById('ideaTags').value = idea.tags || '';
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    function saveIdea() {
+      const content = document.getElementById('ideaContent').value.trim();
+      const categoryId = document.getElementById('ideaCategory').value;
+      const tags = document.getElementById('ideaTags').value.trim();
+      const id = document.getElementById('ideaId').value;
+      
+      if (!content) {
+        showToast('请输入创意内容');
+        return;
+      }
+      
+      const idea = {
+        id: id || Date.now().toString(),
+        content,
+        category_id: categoryId,
+        tags,
+        status: id ? (ideas.find(i => i.id === id)?.status || 'pending') : 'pending',
+        createdAt: id ? (ideas.find(i => i.id === id)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (id) {
+        const index = ideas.findIndex(i => i.id === id);
+        if (index >= 0) ideas[index] = idea;
+      } else {
+        ideas.unshift(idea);
+      }
+      
+      localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+      showToast('保存成功');
+      closeModal();
+      renderIdeas();
+    }
+
+    function toggleStatus(id) {
+      const idea = ideas.find(i => i.id === id);
+      if (idea) {
+        idea.status = idea.status === 'done' ? 'pending' : 'done';
+        idea.updatedAt = new Date().toISOString();
+        localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+        renderIdeas();
+      }
+    }
+
+    function deleteIdea(id) {
+      if (!confirm('确定删除此创意吗？')) return;
+      
+      ideas = ideas.filter(i => i.id !== id);
+      localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+      renderIdeas();
+      showToast('已删除');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>AI 配置</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <style>
+    .config-list {
+      padding: 16px;
+    }
+    .config-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .config-card.active {
+      border: 2px solid #007AFF;
+    }
+    .config-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .config-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .config-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #007AFF;
+      color: white;
+    }
+    .config-model {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .config-api {
+      font-size: 12px;
+      color: #999;
+      word-break: break-all;
+    }
+    .config-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .config-actions button {
+      flex: 1;
+      height: 36px;
+      border-radius: 18px;
+      font-size: 13px;
+    }
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .model-item {
+      padding: 10px 8px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 12px;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .model-item.selected {
+      border-color: #007AFF;
+      background: rgba(0,122,255,0.1);
+    }
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .slider {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      background: #e5e5ea;
+      border-radius: 2px;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #007AFF;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <a href="mobile.html" class="header-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <span class="header-title">AI 配置</span>
+      <button class="header-action" onclick="showModal()">新建</button>
+    </header>
+
+    <!-- 配置列表 -->
+    <div class="config-list" id="configList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+
+    <!-- 新建/编辑弹窗 -->
+    <div class="modal-overlay" id="modal">
+      <div class="modal" style="max-height: 85vh; overflow-y: auto;">
+        <div class="modal-header">
+          <span class="modal-title" id="modalTitle">新建配置</span>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="configId">
+          
+          <div class="form-group">
+            <label class="form-label">配置名称</label>
+            <input type="text" class="form-input" id="configName" placeholder="例如：DeepSeek V3">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">选择模型</label>
+            <div class="model-grid" id="modelGrid">
+              <div class="model-item" data-model="deepseek-chat">DeepSeek V3</div>
+              <div class="model-item" data-model="deepseek-reasoner">DeepSeek R1</div>
+              <div class="model-item" data-model="Qwen/Qwen2.5-72B-Instruct">Qwen 72B</div>
+              <div class="model-item" data-model="THUDM/glm-4-flash">GLM-4</div>
+              <div class="model-item" data-model="Qwen/Qwen2.5-7B-Instruct">Qwen 7B</div>
+              <div class="model-item" data-model="deepseek-ai/DeepSeek-V2.5">DeepSeek V2.5</div>
+            </div>
+            <input type="hidden" id="selectedModel">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">API Key</label>
+            <input type="password" class="form-input" id="apiKey" placeholder="sk-...">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">API 地址</label>
+            <input type="text" class="form-input" id="apiBase" placeholder="https://api.siliconflow.cn/v1">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Temperature（创造性）</label>
+            <div class="slider-group">
+              <span style="font-size:11px;color:#999;">保守</span>
+              <input type="range" class="slider" id="temperature" min="0.1" max="1" step="0.1" value="0.7" oninput="document.getElementById('tempValue').textContent = this.value">
+              <span style="font-size:11px;color:#999;">创意</span>
+              <span id="tempValue" style="min-width: 30px;">0.7</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="isDefault">
+              <span>设为默认配置</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" id="saveBtn" onclick="saveConfig()">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const CONFIG_KEY = 'ai_configs';
+    let configs = [];
+    let editingId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadConfigs();
+      setupModelSelection();
+    });
+
+    function loadConfigs() {
+      configs = JSON.parse(localStorage.getItem(CONFIG_KEY) || '[]');
+      renderConfigs();
+    }
+
+    function renderConfigs() {
+      const container = document.getElementById('configList');
+      
+      if (configs.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>暂无 AI 配置</p>
+            <button class="btn btn-outline" style="margin-top: 16px;" onclick="showModal()">添加配置</button>
+          </div>
+        `;
+        return;
+      }
+      
+      const defaultId = localStorage.getItem('ai_default');
+      
+      container.innerHTML = configs.map(config => `
+        <div class="config-card ${config.id === defaultId ? 'active' : ''}">
+          <div class="config-header">
+            <span class="config-name">${config.name}</span>
+            ${config.id === defaultId ? '<span class="config-badge">默认</span>' : ''}
+          </div>
+          <div class="config-model">模型: ${config.model}</div>
+          <div class="config-api">${config.apiBase}</div>
+          <div class="config-actions">
+            ${config.id !== defaultId ? `<button class="btn btn-outline" onclick="setDefault('${config.id}')">设为默认</button>` : ''}
+            <button class="btn btn-outline" onclick="editConfig('${config.id}')">编辑</button>
+            <button class="btn btn-outline" style="color: #ff3b30;" onclick="deleteConfig('${config.id}')">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function setupModelSelection() {
+      const grid = document.getElementById('modelGrid');
+      grid.querySelectorAll('.model-item').forEach(item => {
+        item.addEventListener('click', () => {
+          grid.querySelectorAll('.model-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          document.getElementById('selectedModel').value = item.dataset.model;
+        });
+      });
+    }
+
+    function showModal(id = null) {
+      editingId = id;
+      
+      if (id) {
+        const config = configs.find(c => c.id === id);
+        if (config) {
+          document.getElementById('modalTitle').textContent = '编辑配置';
+          document.getElementById('configId').value = config.id;
+          document.getElementById('configName').value = config.name;
+          document.getElementById('apiKey').value = config.apiKey;
+          document.getElementById('apiBase').value = config.apiBase;
+          document.getElementById('temperature').value = config.temperature || 0.7;
+          document.getElementById('tempValue').textContent = config.temperature || 0.7;
+          document.getElementById('isDefault').checked = localStorage.getItem('ai_default') === config.id;
+          
+          // 选中模型
+          document.querySelectorAll('.model-item').forEach(item => {
+            item.classList.toggle('selected', item.dataset.model === config.model);
+          });
+          document.getElementById('selectedModel').value = config.model;
+        }
+      } else {
+        document.getElementById('modalTitle').textContent = '新建配置';
+        document.getElementById('configId').value = '';
+        document.getElementById('configName').value = '';
+        document.getElementById('apiKey').value = '';
+        document.getElementById('apiBase').value = 'https://api.siliconflow.cn/v1';
+        document.getElementById('temperature').value = 0.7;
+        document.getElementById('tempValue').textContent = '0.7';
+        document.getElementById('isDefault').checked = false;
+        document.querySelectorAll('.model-item').forEach(i => i.classList.remove('selected'));
+        document.getElementById('selectedModel').value = '';
+      }
+      
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    function editConfig(id) {
+      showModal(id);
+    }
+
+    async function saveConfig() {
+      const name = document.getElementById('configName').value.trim();
+      const model = document.getElementById('selectedModel').value;
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const apiBase = document.getElementById('apiBase').value.trim();
+      const temperature = parseFloat(document.getElementById('temperature').value);
+      const isDefault = document.getElementById('isDefault').checked;
+      
+      if (!name) {
+        showToast('请输入配置名称');
+        return;
+      }
+      
+      if (!apiKey) {
+        showToast('请输入 API Key');
+        return;
+      }
+      
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+      
+      try {
+        const config = {
+          id: editingId || Date.now().toString(),
+          name,
+          model: model || 'deepseek-chat',
+          apiKey,
+          apiBase: apiBase || 'https://api.siliconflow.cn/v1',
+          temperature,
+          updatedAt: new Date().toISOString()
+        };
+        
+        if (editingId) {
+          const index = configs.findIndex(c => c.id === editingId);
+          if (index >= 0) configs[index] = config;
+        } else {
+          configs.push(config);
+        }
+        
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(configs));
+        
+        if (isDefault) {
+          localStorage.setItem('ai_default', config.id);
+        }
+        
+        showToast('保存成功');
+        closeModal();
+        renderConfigs();
+      } catch (e) {
+        showToast('保存失败');
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '保存';
+    }
+
+    function setDefault(id) {
+      localStorage.setItem('ai_default', id);
+      renderConfigs();
+      showToast('已设为默认');
+    }
+
+    function deleteConfig(id) {
+      if (!confirm('确定删除此配置吗？')) return;
+      
+      configs = configs.filter(c => c.id !== id);
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(configs));
+      
+      if (localStorage.getItem('ai_default') === id) {
+        localStorage.removeItem('ai_default');
+      }
+      
+      renderConfigs();
+      showToast('已删除');
+    }
+  </script>
+</body>
+</html>

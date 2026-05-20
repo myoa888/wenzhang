@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>数据统计</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <style>
+    .stats-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .stats-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+    .stats-card.blue::before { background: #007AFF; }
+    .stats-card.green::before { background: #34C759; }
+    .stats-card.orange::before { background: #FF9500; }
+    .stats-card.purple::before { background: #AF52DE; }
+    
+    .stats-detail {
+      margin-top: 16px;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+    }
+    .stats-detail-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .stats-row:last-child {
+      border-bottom: none;
+    }
+    .stats-row-label {
+      color: #666;
+    }
+    .stats-row-value {
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <a href="mobile.html" class="header-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <span class="header-title">数据统计</span>
+    </header>
+
+    <!-- 内容 -->
+    <div class="page-content" id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await Api.getStats();
+        renderStats(res.data || res);
+      } catch (e) {
+        document.getElementById('content').innerHTML = `
+          <div class="error-state">
+            <p>加载失败</p>
+          </div>
+        `;
+      }
+    });
+
+    function renderStats(stats) {
+      const container = document.getElementById('content');
+      
+      // 计算默认值
+      const articles = stats.articles || 0;
+      const categories = stats.categories || 0;
+      const tags = stats.tags || 0;
+      const views = stats.views || 0;
+      
+      container.innerHTML = `
+        <!-- 概览卡片 -->
+        <div class="stats-grid">
+          <div class="stats-card blue">
+            <div class="stats-value">${articles}</div>
+            <div class="stats-label">文章总数</div>
+          </div>
+          <div class="stats-card green">
+            <div class="stats-value">${categories}</div>
+            <div class="stats-label">分类数</div>
+          </div>
+          <div class="stats-card orange">
+            <div class="stats-value">${tags}</div>
+            <div class="stats-label">标签数</div>
+          </div>
+          <div class="stats-card purple">
+            <div class="stats-value">${views}</div>
+            <div class="stats-label">总阅读量</div>
+          </div>
+        </div>
+        
+        <!-- 详细信息 -->
+        <div class="stats-detail">
+          <div class="stats-detail-title">数据概览</div>
+          <div class="stats-row">
+            <span class="stats-row-label">已发布文章</span>
+            <span class="stats-row-value">${stats.published || articles}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row-label">草稿文章</span>
+            <span class="stats-row-value">${stats.drafts || 0}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row-label">本周新增</span>
+            <span class="stats-row-value">${stats.weekly || 0}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row-label">本月新增</span>
+            <span class="stats-row-value">${stats.monthly || 0}</span>
+          </div>
+        </div>
+        
+        <!-- 底部留白 -->
+        <div style="height: 20px;"></div>
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>搜索</title>
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+  <div class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <a href="mobile.html" class="header-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <span class="header-title">搜索</span>
+    </header>
+
+    <!-- 搜索区域 -->
+    <div style="padding-top: 72px;">
+      <div class="search-bar" style="padding: 16px 16px 8px;">
+        <input type="search" class="search-input" id="searchInput" placeholder="输入关键词搜索..." autofocus>
+        <button class="search-btn" onclick="doSearch()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- 搜索历史 -->
+      <div id="historySection" style="padding: 8px 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 14px; color: #666;">搜索历史</span>
+          <button onclick="clearHistory()" style="font-size: 12px; color: #999;">清除</button>
+        </div>
+        <div id="historyTags" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+      </div>
+      
+      <!-- 搜索结果 -->
+      <div class="article-list" id="results" style="padding-top: 16px;"></div>
+      
+      <!-- 空状态 -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <p>没有找到相关文章</p>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="tabbar">
+      <a href="mobile.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>首页</span>
+      </a>
+      <a href="search.html" class="tab-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <span>搜索</span>
+      </a>
+      <a href="editor.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span>写作</span>
+      </a>
+      <a href="my.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const HISTORY_KEY = 'search_history';
+    let searchResults = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadHistory();
+      
+      // 检查 URL 参数
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q');
+      if (q) {
+        document.getElementById('searchInput').value = q;
+        doSearch();
+      }
+      
+      // 回车搜索
+      document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') doSearch();
+      });
+    });
+
+    function loadHistory() {
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      const container = document.getElementById('historyTags');
+      
+      if (history.length === 0) {
+        document.getElementById('historySection').style.display = 'none';
+        return;
+      }
+      
+      container.innerHTML = history.slice(0, 10).map(keyword => `
+        <span class="category-tag" onclick="searchFromHistory('${keyword}')">${keyword}</span>
+      `).join('');
+    }
+
+    function searchFromHistory(keyword) {
+      document.getElementById('searchInput').value = keyword;
+      doSearch();
+    }
+
+    function clearHistory() {
+      localStorage.removeItem(HISTORY_KEY);
+      document.getElementById('historySection').style.display = 'none';
+    }
+
+    async function doSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      if (!keyword) return;
+      
+      // 保存历史
+      let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      history = history.filter(h => h !== keyword);
+      history.unshift(keyword);
+      history = history.slice(0, 20);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      
+      // 隐藏历史，显示结果
+      document.getElementById('historySection').style.display = 'none';
+      const container = document.getElementById('results');
+      container.innerHTML = '<div class="loading"><div class="spinner"></div><span>搜索中...</span></div>';
+      
+      try {
+        const res = await Api.search(keyword);
+        searchResults = res.data || [];
+        
+        if (searchResults.length === 0) {
+          container.innerHTML = '';
+          document.getElementById('emptyState').style.display = 'block';
+        } else {
+          document.getElementById('emptyState').style.display = 'none';
+          container.innerHTML = '';
+          searchResults.forEach(article => {
+            container.appendChild(createArticleItem(article));
+          });
+        }
+      } catch (e) {
+        container.innerHTML = `<div class="error-state"><p>搜索失败: ${e.message}</p></div>`;
+      }
+    }
+
+    function createArticleItem(article) {
+      const item = document.createElement('div');
+      item.className = 'article-item';
+      item.onclick = () => location.href = `article.html?id=${article.id}`;
+      
+      const cover = article.cover_image || CONFIG.PLACEHOLDER_IMAGE;
+      const date = formatDate(article.created_at);
+      
+      item.innerHTML = `
+        <img class="article-item-cover" src="${cover}" alt="" onerror="this.src='${CONFIG.PLACEHOLDER_IMAGE}'">
+        <div class="article-item-content">
+          <h3 class="article-item-title">${article.title}</h3>
+          <div class="article-item-meta">
+            <span>${date}</span>
+            ${article.category ? `<span>· ${article.category}</span>` : ''}
+          </div>
+        </div>
+      `;
+      
+      return item;
+    }
+  </script>
+</body>
+</html>

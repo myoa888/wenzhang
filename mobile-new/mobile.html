@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>文章</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <style>
+    /* 页面特定样式 */
+    .hero-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px 16px;
+      margin: 16px;
+      border-radius: 16px;
+    }
+    
+    .hero-section h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    
+    .hero-section p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 16px 12px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .section-more {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+    
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+    
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 8px;
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .quick-action:active {
+      transform: scale(0.95);
+    }
+    
+    .quick-action-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    }
+    
+    .quick-action-icon.blue { background: #007AFF; }
+    .quick-action-icon.green { background: #34C759; }
+    .quick-action-icon.orange { background: #FF9500; }
+    .quick-action-icon.purple { background: #AF52DE; }
+    
+    .quick-action-text {
+      font-size: 12px;
+      color: var(--gray-700);
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="page">
+    <!-- 顶部栏 -->
+    <header class="header">
+      <span class="header-title">发现</span>
+    </header>
+
+    <!-- 主内容 -->
+    <main class="page-content">
+      <!-- 搜索栏 -->
+      <div class="search-bar">
+        <input type="search" class="search-input" id="searchInput" placeholder="搜索文章...">
+        <button class="search-btn" onclick="goSearch()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 快捷入口 -->
+      <div class="quick-actions">
+        <div class="quick-action" onclick="location.href='editor.html'">
+          <div class="quick-action-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <span class="quick-action-text">写文章</span>
+        </div>
+        <div class="quick-action" onclick="location.href='categories.html'">
+          <div class="quick-action-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </div>
+          <span class="quick-action-text">分类</span>
+        </div>
+        <div class="quick-action" onclick="location.href='stats.html'">
+          <div class="quick-action-icon orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10M12 20V4M6 20v-6"/>
+            </svg>
+          </div>
+          <span class="quick-action-text">统计</span>
+        </div>
+        <div class="quick-action" onclick="location.href='my.html'">
+          <div class="quick-action-icon purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span class="quick-action-text">我的</span>
+        </div>
+      </div>
+
+      <!-- 分类标签 -->
+      <div class="categories" id="categories">
+        <span class="category-tag active" data-id="">全部</span>
+      </div>
+
+      <!-- 文章列表 -->
+      <div class="section-header">
+        <span class="section-title">推荐文章</span>
+        <span class="section-more" id="totalCount"></span>
+      </div>
+      <div class="article-list" id="articleList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>加载中...</span>
+        </div>
+      </div>
+      
+      <!-- 加载更多 -->
+      <div id="loadMore" class="loading hidden">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </main>
+
+    <!-- 底部导航 -->
+    <nav class="tabbar">
+      <a href="mobile.html" class="tab-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>首页</span>
+      </a>
+      <a href="search.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <span>搜索</span>
+      </a>
+      <a href="editor.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span>写作</span>
+      </a>
+      <a href="my.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    // 状态
+    let page = 1;
+    let loading = false;
+    let hasMore = true;
+    let currentCategory = '';
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadCategories();
+      await loadArticles();
+      setupInfiniteScroll();
+      setupSearch();
+    });
+
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const res = await Api.getCategories();
+        const categories = res.data || [];
+        const container = document.getElementById('categories');
+        
+        let html = '<span class="category-tag active" data-id="">全部</span>';
+        categories.forEach(cat => {
+          html += `<span class="category-tag" data-id="${cat.id}">${cat.name}</span>`;
+        });
+        container.innerHTML = html;
+        
+        // 绑定点击事件
+        container.querySelectorAll('.category-tag').forEach(tag => {
+          tag.addEventListener('click', () => {
+            container.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+            tag.classList.add('active');
+            currentCategory = tag.dataset.id;
+            page = 1;
+            hasMore = true;
+            loadArticles(true);
+          });
+        });
+      } catch (e) {
+        console.error('加载分类失败:', e);
+      }
+    }
+
+    // 加载文章
+    async function loadArticles(reset = false) {
+      if (loading || !hasMore) return;
+      
+      loading = true;
+      const container = document.getElementById('articleList');
+      const loadMore = document.getElementById('loadMore');
+      
+      if (reset) {
+        page = 1;
+        container.innerHTML = '<div class="loading"><div class="spinner"></div><span>加载中...</span></div>';
+      } else {
+        loadMore.classList.remove('hidden');
+      }
+      
+      try {
+        const params = { page, limit: CONFIG.PAGE_SIZE };
+        if (currentCategory) params.category = currentCategory;
+        
+        const res = await Api.getArticles(params);
+        const articles = res.data || [];
+        const total = res.total || 0;
+        
+        document.getElementById('totalCount').textContent = `共 ${total} 篇`;
+        
+        if (reset) {
+          container.innerHTML = '';
+        }
+        
+        if (articles.length === 0 && page === 1) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/>
+              </svg>
+              <p>暂无文章</p>
+            </div>
+          `;
+          hasMore = false;
+        } else {
+          articles.forEach(article => {
+            container.appendChild(createArticleCard(article));
+          });
+          
+          if (articles.length < CONFIG.PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+      } catch (e) {
+        container.innerHTML = `
+          <div class="error-state">
+            <p>加载失败: ${e.message}</p>
+            <button class="btn btn-outline" style="margin-top: 12px;" onclick="loadArticles(true)">重试</button>
+          </div>
+        `;
+      }
+      
+      loading = false;
+      loadMore.classList.add('hidden');
+    }
+
+    // 创建文章卡片
+    function createArticleCard(article) {
+      const card = document.createElement('div');
+      card.className = 'article-card';
+      card.onclick = () => location.href = `article.html?id=${article.id}`;
+      
+      const cover = article.cover_image || CONFIG.PLACEHOLDER_IMAGE;
+      const readTime = formatReadTime(article.content);
+      const date = formatDate(article.created_at);
+      
+      card.innerHTML = `
+        <img class="article-cover" src="${cover}" alt="${article.title}" onerror="this.src='${CONFIG.PLACEHOLDER_IMAGE}'">
+        <div class="article-info">
+          <h3 class="article-title">${article.title}</h3>
+          <div class="article-meta">
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              ${date}
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              ${readTime} 分钟
+            </span>
+          </div>
+        </div>
+      `;
+      
+      return card;
+    }
+
+    // 无限滚动
+    function setupInfiniteScroll() {
+      let observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          loadArticles();
+        }
+      }, { threshold: 0.1 });
+      
+      observer.observe(document.getElementById('loadMore'));
+    }
+
+    // 搜索
+    function setupSearch() {
+      const input = document.getElementById('searchInput');
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          goSearch();
+        }
+      });
+    }
+
+    function goSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      if (keyword) {
+        location.href = `search.html?q=${encodeURIComponent(keyword)}`;
+      }
+    }
+  </script>
+</body>
+</html>
