@@ -164,10 +164,10 @@ const INIT_TABLES = [
   )`,
   // 默认数据
   `INSERT OR IGNORE INTO categories (name, slug, description, sort_order) VALUES
-  ('技术', 'tech', '技术文章、编程、软件开发', 1),
-  ('生活', 'life', '生活随笔、日常记录', 2),
-  ('笔记', 'notes', '学习笔记、知识整理', 3),
-  ('其他', 'other', '其他类型文章', 99)`,
+  ('技术', '技术', '技术文章、编程、软件开发', 1),
+  ('生活', '生活', '生活随笔、日常记录', 2),
+  ('笔记', '笔记', '学习笔记、知识整理', 3),
+  ('其他', '其他', '其他类型文章', 99)`,
   `INSERT OR IGNORE INTO users (id, username, password_hash, email, avatar) 
   VALUES (1, 'ai_assistant', 'ai_no_password', 'ai@system.local', '/assets/ai-avatar.png')`
 ];
@@ -1112,11 +1112,11 @@ ${issues}
       if (path === '/categories' && method === 'POST') {
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
-        const { name, slug, description } = body;
+        const { name, description } = body;
         if (!name) return error('分类名称不能为空');
-        const existing = await DB.prepare('SELECT id FROM categories WHERE name = ? OR slug = ?').bind(name, slug || name).first();
-        if (existing) return error('分类名称或别名已存在');
-        const result = await DB.prepare('INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)').bind(name, slug || name, description || null, 0).run();
+        const existing = await DB.prepare('SELECT id FROM categories WHERE name = ?').bind(name).first();
+        if (existing) return error('分类名称已存在');
+        const result = await DB.prepare('INSERT INTO categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)').bind(name, name, description || null, 0).run();
         return success({ id: result.meta.last_row_id }, '分类创建成功');
       }
 
@@ -1126,8 +1126,8 @@ ${issues}
         const user = await verifyToken(token);
         if (!user) return error('需要登录', 401);
         const id = catMatch[1];
-        const { name, slug, description, sort_order } = body;
-        await DB.prepare('UPDATE categories SET name = COALESCE(?, name), slug = COALESCE(?, slug), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order) WHERE id = ?').bind(name, slug, description, sort_order, id).run();
+        const { name, description, sort_order } = body;
+        await DB.prepare('UPDATE categories SET name = COALESCE(?, name), slug = COALESCE(?, slug), description = COALESCE(?, description), sort_order = COALESCE(?, sort_order) WHERE id = ?').bind(name, name, description, sort_order, id).run();
         return success(null, '分类更新成功');
       }
 
@@ -1150,7 +1150,7 @@ ${issues}
 
         let where = "WHERE a.status = 'published'";
         const bindings = [];
-        if (category) { where += " AND c.slug = ?"; bindings.push(category); }
+        if (category) { where += " AND c.name = ?"; bindings.push(category); }
         if (keyword) { where += " AND (a.title LIKE ? OR a.content LIKE ?)"; bindings.push(`%${keyword}%`, `%${keyword}%`); }
 
         const countResult = await DB.prepare(`SELECT COUNT(*) as total FROM articles a LEFT JOIN categories c ON a.category_id = c.id ${where}`).bind(...bindings).first();

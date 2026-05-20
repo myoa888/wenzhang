@@ -68,7 +68,6 @@
         <div class="category-manager">
           <div class="add-category">
             <input type="text" id="newCategoryName" class="form-input" placeholder="分类名称">
-            <input type="text" id="newCategorySlug" class="form-input" placeholder="分类slug (英文)">
             <button onclick="addCategory()" class="btn btn-primary">添加分类</button>
           </div>
 
@@ -210,7 +209,6 @@
           <thead>
             <tr>
               <th>名称</th>
-              <th>Slug</th>
               <th>排序</th>
               <th>操作</th>
             </tr>
@@ -219,7 +217,6 @@
             ${categories.map(c => `
               <tr>
                 <td>${c.name}</td>
-                <td><code>${c.slug}</code></td>
                 <td>${c.sort_order}</td>
                 <td>
                   <button onclick="deleteCategory(${c.id})" class="btn-link danger">删除</button>
@@ -234,19 +231,17 @@
     // 添加分类
     async function addCategory() {
       const name = document.getElementById('newCategoryName').value.trim();
-      const slug = document.getElementById('newCategorySlug').value.trim();
 
-      if (!name || !slug) {
-        alert('请填写分类名称和slug');
+      if (!name) {
+        alert('请填写分类名称');
         return;
       }
 
       try {
-        const res = await api.createCategory({ name, slug }, localStorage.getItem('token'));
+        const res = await api.createCategory({ name }, localStorage.getItem('token'));
         if (res.success) {
           alert('添加成功');
           document.getElementById('newCategoryName').value = '';
-          document.getElementById('newCategorySlug').value = '';
           loadCategories();
           loadStats();
         } else {

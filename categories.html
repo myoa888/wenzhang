@@ -63,7 +63,7 @@
       font-weight: 500;
       color: #333;
     }
-    .category-item .slug {
+    .category-item .desc {
       font-size: 12px;
       color: #999;
       margin-top: 2px;
@@ -176,7 +176,6 @@
   <div class="add-form">
     <h3>添加新分类</h3>
     <input type="text" id="categoryName" placeholder="分类名称，如：技术">
-    <input type="text" id="categorySlug" placeholder="别名(英文)，如：tech">
     <div class="btn-row">
       <button class="btn-submit" onclick="addCategory()">添加</button>
       <button class="btn-reset" onclick="resetForm()">重置</button>
@@ -234,7 +233,7 @@
           <div class="icon">📁</div>
           <div class="info">
             <div class="name">${escapeHtml(c.name)}</div>
-            <div class="slug">${escapeHtml(c.slug)}</div>
+            <div class="desc">${c.article_count || 0} 篇文章</div>
           </div>
           ${c.article_count !== undefined ? `<span class="count">${c.article_count}篇</span>` : ''}
           <button class="delete-btn" onclick="deleteCategory(${c.id})">删除</button>
@@ -244,19 +243,14 @@
 
     async function addCategory() {
       const name = document.getElementById('categoryName').value.trim();
-      const slug = document.getElementById('categorySlug').value.trim();
 
       if (!name) {
         showToast('请输入分类名称');
         return;
       }
-      if (!slug) {
-        showToast('请输入别名');
-        return;
-      }
 
       try {
-        const res = await api.createCategory({ name, slug });
+        const res = await api.createCategory({ name });
         if (res.success) {
           showToast('添加成功');
           resetForm();
@@ -287,7 +281,6 @@
 
     function resetForm() {
       document.getElementById('categoryName').value = '';
-      document.getElementById('categorySlug').value = '';
     }
 
     function escapeHtml(text) {

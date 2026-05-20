@@ -92,7 +92,7 @@
         const list = document.getElementById('categoryList');
         list.innerHTML = '<li><a href="#" class="category-item active" data-category="">全部</a></li>';
         categories.forEach(cat => {
-          list.innerHTML += `<li><a href="#" class="category-item" data-category="${cat.slug}">${cat.name}</a></li>`;
+          list.innerHTML += `<li><a href="#" class="category-item" data-category="${cat.name}">${cat.name}</a></li>`;
         });
       } catch (e) {
         console.error('加载分类失败', e);
