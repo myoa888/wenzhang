@@ -217,6 +217,16 @@ export default {
       return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    async function getUserIdFromToken(token) {
+      if (!token || !DB) return null;
+      try {
+        const result = await DB.prepare(
+          `SELECT user_id FROM sessions WHERE token = ? AND expires_at > datetime('now')`
+        ).bind(token).first();
+        return result?.user_id || null;
+      } catch (e) { return null; }
+    }
+
     async function verifyToken(token) {
       if (!token || !env.DB) return null;
       try {
@@ -798,15 +808,63 @@ ${issues}
     }
 
     try {
-      // Stats
+      // Stats - 完整统计
       if (path === '/stats' && method === 'GET') {
-        const stats = {
-          articles: await DB.prepare("SELECT COUNT(*) as c FROM articles WHERE status = 'published'").first(),
-          categories: await DB.prepare('SELECT COUNT(*) as c FROM categories').first(),
-          users: await DB.prepare('SELECT COUNT(*) as c FROM users').first(),
-          views: await DB.prepare('SELECT SUM(view_count) as t FROM articles').first()
-        };
-        return json({ articles: stats.articles?.c || 0, categories: stats.categories?.c || 0, users: stats.users?.c || 0, views: stats.views?.t || 0 });
+        const userId = await getUserIdFromToken(token);
+        
+        // 文章统计
+        const totalArticles = await DB.prepare('SELECT COUNT(*) as c FROM articles').first();
+        const publishedArticles = await DB.prepare("SELECT COUNT(*) as c FROM articles WHERE status = 'published'").first();
+        const draftArticles = await DB.prepare("SELECT COUNT(*) as c FROM articles WHERE status = 'draft'").first();
+        const pendingReviewArticles = await DB.prepare("SELECT COUNT(*) as c FROM articles WHERE status = 'pending_review'").first();
+        const totalViews = await DB.prepare('SELECT SUM(view_count) as t FROM articles').first();
+        
+        // 用户创作统计（手动创建的文章）
+        const userArticles = await DB.prepare('SELECT COUNT(*) as c FROM articles WHERE user_id = ?').bind(userId).first();
+        
+        // AI 生成统计
+        const aiGenerations = await DB.prepare('SELECT COUNT(*) as c FROM ai_generations WHERE user_id = ?').bind(userId).first();
+        const aiSuccess = await DB.prepare("SELECT COUNT(*) as c FROM ai_generations WHERE user_id = ? AND status = 'success'").bind(userId).first();
+        const aiFailed = await DB.prepare("SELECT COUNT(*) as c FROM ai_generations WHERE user_id = ? AND status = 'failed'").bind(userId).first();
+        
+        // 创意统计
+        const totalIdeas = await DB.prepare('SELECT COUNT(*) as c FROM ideas WHERE user_id = ?').bind(userId).first();
+        const pendingIdeas = await DB.prepare("SELECT COUNT(*) as c FROM ideas WHERE user_id = ? AND status = 'pending'").bind(userId).first();
+        const doneIdeas = await DB.prepare("SELECT COUNT(*) as c FROM ideas WHERE user_id = ? AND status = 'done'").bind(userId).first();
+        
+        // AI 使用 Token 统计
+        const aiTokens = await DB.prepare('SELECT SUM(tokens_used) as t FROM ai_generations WHERE user_id = ?').bind(userId).first();
+        const aiCost = await DB.prepare('SELECT SUM(cost) as t FROM ai_generations WHERE user_id = ?').bind(userId).first();
+        
+        // 分类和标签
+        const categories = await DB.prepare('SELECT COUNT(*) as c FROM categories').first();
+        const tags = await DB.prepare('SELECT COUNT(*) as c FROM tags').first();
+        
+        return json({
+          success: true,
+          articles: {
+            total: totalArticles?.c || 0,
+            published: publishedArticles?.c || 0,
+            draft: draftArticles?.c || 0,
+            pending_review: pendingReviewArticles?.c || 0,
+            user_created: userArticles?.c || 0
+          },
+          views: totalViews?.t || 0,
+          ai: {
+            total_generations: aiGenerations?.c || 0,
+            success: aiSuccess?.c || 0,
+            failed: aiFailed?.c || 0,
+            tokens_used: aiTokens?.t || 0,
+            cost: aiCost?.t || 0
+          },
+          ideas: {
+            total: totalIdeas?.c || 0,
+            pending: pendingIdeas?.c || 0,
+            done: doneIdeas?.c || 0
+          },
+          categories: categories?.c || 0,
+          tags: tags?.c || 0
+        });
       }
 
       // Categories

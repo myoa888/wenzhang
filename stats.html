@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>数据统计 - 自媒体助手</title>
+  <link rel="stylesheet" href="css/mobile.css">
+  <style>
+    body { background: #f5f7fa; }
+    
+    .stats-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .stats-header h1 { margin: 0 0 8px 0; font-size: 20px; }
+    .stats-header p { margin: 0; opacity: 0.8; font-size: 13px; }
+    
+    .stats-section {
+      padding: 16px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title svg { width: 20px; height: 20px; }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .stats-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stats-card.user-card {
+      border-left: 4px solid #409eff;
+    }
+    .stats-card.ai-card {
+      border-left: 4px solid #67c23a;
+    }
+    .stats-card .label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+    }
+    .stats-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #333;
+    }
+    .stats-card .desc {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+    
+    .progress-section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .progress-item {
+      margin-bottom: 16px;
+    }
+    .progress-item:last-child { margin-bottom: 0; }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .progress-label { font-size: 14px; color: #333; }
+    .progress-value { font-size: 14px; color: #666; font-weight: 500; }
+    .progress-bar {
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .progress-fill.blue { background: linear-gradient(90deg, #409eff, #66b1ff); }
+    .progress-fill.green { background: linear-gradient(90deg, #67c23a, #85ce61); }
+    .progress-fill.orange { background: linear-gradient(90deg, #e6a23c, #ebb563); }
+    
+    .comparison-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .comparison-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .comparison-header h3 { margin: 0 0 4px 0; font-size: 16px; color: #333; }
+    .comparison-header p { margin: 0; font-size: 12px; color: #999; }
+    
+    .comparison-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .comparison-row:last-child { border-bottom: none; }
+    .comparison-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+    }
+    .comparison-icon.user { background: linear-gradient(135deg, #409eff, #66b1ff); }
+    .comparison-icon.ai { background: linear-gradient(135deg, #67c23a, #85ce61); }
+    .comparison-icon svg { width: 24px; height: 24px; color: #fff; }
+    
+    .comparison-info { flex: 1; }
+    .comparison-title { font-size: 14px; color: #333; margin-bottom: 2px; }
+    .comparison-desc { font-size: 12px; color: #999; }
+    
+    .comparison-value { text-align: right; }
+    .comparison-value .num { font-size: 24px; font-weight: 700; color: #333; }
+    .comparison-value .unit { font-size: 12px; color: #999; }
+    
+    .pie-chart {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: conic-gradient(#409eff 0% var(--user-percent), #67c23a var(--user-percent) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .pie-center {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .pie-center .num { font-size: 20px; font-weight: 700; color: #333; }
+    .pie-center .label { font-size: 11px; color: #999; }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .legend-dot.user { background: #409eff; }
+    .legend-dot.ai { background: #67c23a; }
+    
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f0f0f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading span { color: #999; font-size: 14px; }
+    
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="page-header">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+      </button>
+      <h1>数据统计</h1>
+    </header>
+
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <span>加载中...</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let stats = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadStats();
+    });
+
+    async function loadStats() {
+      try {
+        const res = await api.get('/stats');
+        stats = res;
+        renderStats(stats);
+      } catch (e) {
+        document.getElementById('content').innerHTML = `
+          <div class="error-state">
+            <p>加载失败，请稍后重试</p>
+            <button class="btn btn-primary" onclick="loadStats()">重新加载</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderStats(data) {
+      const { articles, views, ai, ideas, categories, tags } = data;
+      
+      // 计算用户创建 vs AI 生成的比例
+      const userCreated = articles.user_created || 0;
+      const aiGenerated = ai.success || 0;
+      const total = userCreated + aiGenerated;
+      const userPercent = total > 0 ? Math.round((userCreated / total) * 100) : 50;
+      const aiPercent = total > 0 ? 100 - userPercent : 50;
+
+      document.getElementById('content').innerHTML = `
+        <div class="stats-header">
+          <h1>📊 内容创作统计</h1>
+          <p>记录你的每一次创作</p>
+        </div>
+        
+        <div class="stats-section">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#409eff" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            文章统计
+          </div>
+          <div class="stats-grid">
+            <div class="stats-card user-card">
+              <div class="label">已发布</div>
+              <div class="value">${articles.published}</div>
+              <div class="desc">篇</div>
+            </div>
+            <div class="stats-card ai-card">
+              <div class="label">待审核</div>
+              <div class="value">${articles.pending_review}</div>
+              <div class="desc">篇</div>
+            </div>
+            <div class="stats-card">
+              <div class="label">草稿</div>
+              <div class="value">${articles.draft}</div>
+              <div class="desc">篇</div>
+            </div>
+            <div class="stats-card">
+              <div class="label">总浏览</div>
+              <div class="value">${formatNumber(views)}</div>
+              <div class="desc">次</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#67c23a" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+              <line x1="9" y1="9" x2="9.01" y2="9"></line>
+              <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+            AI 工作量
+          </div>
+          <div class="stats-grid">
+            <div class="stats-card ai-card">
+              <div class="label">AI 生成成功</div>
+              <div class="value">${ai.success}</div>
+              <div class="desc">篇</div>
+            </div>
+            <div class="stats-card">
+              <div class="label">AI 生成失败</div>
+              <div class="value">${ai.failed}</div>
+              <div class="desc">次</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="comparison-card">
+          <div class="comparison-header">
+            <h3>🤝 用户 vs AI 创作对比</h3>
+            <p>谁写的更多？</p>
+          </div>
+          
+          <div class="pie-chart" style="--user-percent: ${userPercent}%">
+            <div class="pie-center">
+              <div class="num">${total}</div>
+              <div class="label">总文章</div>
+            </div>
+          </div>
+          
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-dot user"></span>
+              <span>用户创作 ${userCreated} 篇 (${userPercent}%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot ai"></span>
+              <span>AI 生成 ${aiGenerated} 篇 (${aiPercent}%)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <div class="section-title" style="margin-bottom: 16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#e6a23c" stroke-width="2">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            创意转化进度
+          </div>
+          
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">创意 → 文章</span>
+              <span class="progress-value">${ideas.done} / ${ideas.total}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill green" style="width: ${ideas.total > 0 ? (ideas.done / ideas.total * 100) : 0}%"></div>
+            </div>
+          </div>
+          
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">待生成创意</span>
+              <span class="progress-value">${ideas.pending} 条</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill orange" style="width: ${ideas.total > 0 ? (ideas.pending / ideas.total * 100) : 0}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#909399" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            内容资产
+          </div>
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="label">分类</div>
+              <div class="value">${categories}</div>
+              <div class="desc">个</div>
+            </div>
+            <div class="stats-card">
+              <div class="label">标签</div>
+              <div class="value">${tags}</div>
+              <div class="desc">个</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 16px; text-align: center; color: #999; font-size: 12px;">
+          数据更新时间: ${new Date().toLocaleString('zh-CN')}
+        </div>
+      `;
+    }
+
+    function formatNumber(num) {
+      if (num >= 10000) {
+        return (num / 10000).toFixed(1) + '万';
+      }
+      return num || 0;
+    }
+  </script>
+</body>
+</html>
