@@ -255,6 +255,15 @@ export default {
       return error('数据库未连接，请联系管理员', 500);
     }
 
+    // Parse JSON body for non-upload / non-multipart requests
+    // 必须在所有需要 body 的 API 之前解析
+    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      const ct = request.headers.get('content-type') || '';
+      if (!ct.includes('multipart/form-data')) {
+        try { body = await request.json(); } catch (e) {}
+      }
+    }
+
     // Image/File upload (multipart form data) — 优先使用R2存储，无R2时降级为base64内嵌
     if (path === '/upload' && method === 'POST') {
       const user = await verifyToken(token);
@@ -618,15 +627,6 @@ ${issues}
         return json({ success: true, article_id }, '文章已修复');
       } catch (e) {
         return error('修复失败: ' + e.message, 500);
-      }
-    }
-
-    // Parse JSON body for non-upload / non-multipart requests
-    // 必须在所有需要 body 的 API 之前解析
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-      const ct = request.headers.get('content-type') || '';
-      if (!ct.includes('multipart/form-data')) {
-        try { body = await request.json(); } catch (e) {}
       }
     }
 
