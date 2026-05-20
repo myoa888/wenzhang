@@ -144,7 +144,9 @@ export default {
       if (!prompt) return error('请输入图片描述');
 
       try {
-        // 使用免费的 SiliconFlow API (需要配置)
+        let imageUrl = null;
+
+        // 使用 SiliconFlow API (需要配置)
         const imgApiKey = env.IMAGE_API_KEY;
         if (imgApiKey) {
           const res = await fetch('https://api.siliconflow.cn/v1/image/generations', {
@@ -161,22 +163,52 @@ export default {
           });
           const data = await res.json();
           if (data.images && data.images[0]) {
-            return json({ url: data.images[0].url, prompt });
+            imageUrl = data.images[0].url;
           }
         }
         
         // 备用：使用免费 Z-Image API (无需key)
-        const zImageRes = await fetch('https://zimage.run/api/v1/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, width, height })
-        });
-        const zData = await zImageRes.json();
-        if (zData.image_url) {
-          return json({ url: zData.image_url, prompt });
+        if (!imageUrl) {
+          const zImageRes = await fetch('https://zimage.run/api/v1/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, width, height })
+          });
+          const zData = await zImageRes.json();
+          if (zData.image_url) {
+            imageUrl = zData.image_url;
+          }
         }
         
-        return error('图片生成服务暂时不可用', 503);
+        if (!imageUrl) {
+          return error('图片生成服务暂时不可用', 503);
+        }
+
+        // 如果配置了 R2 Storage，下载图片并保存到 R2
+        if (env.ASSETS_BUCKET) {
+          try {
+            const imageRes = await fetch(imageUrl);
+            if (imageRes.ok) {
+              const imageBuffer = await imageRes.arrayBuffer();
+              const filename = `ai-images/${Date.now()}-${Math.random().toString(36).substring(2, 10)}.png`;
+              await env.ASSETS_BUCKET.put(filename, imageBuffer, { 
+                httpMetadata: { contentType: 'image/png' } 
+              });
+              // 生成 Cloudflare Pages 的访问 URL
+              const storedUrl = `${url.origin}/files/${filename}`;
+              // 记录到附件表
+              await DB.prepare(`INSERT INTO attachments (user_id, filename, original_name, mime_type, size, storage_path, url) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+                .bind(user.user_id, filename, `AI生成图片-${Date.now()}.png`, 'image/png', imageBuffer.byteLength, filename, storedUrl).run();
+              return json({ url: storedUrl, prompt, stored: true });
+            }
+          } catch (e) {
+            console.error('保存图片到R2失败:', e);
+            // 如果保存失败，返回原始URL
+            return json({ url: imageUrl, prompt, stored: false });
+          }
+        }
+
+        return json({ url: imageUrl, prompt, stored: false });
       } catch (e) {
         return error('图片生成失败: ' + e.message, 500);
       }
