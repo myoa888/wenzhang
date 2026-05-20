@@ -1,0 +1,42 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "返回管理" [ref=e4] [cursor=pointer]:
+        - /url: manage.html
+      - generic [ref=e5]:
+        - button "保存草稿" [ref=e6] [cursor=pointer]
+        - button "发布" [ref=e7] [cursor=pointer]
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - textbox "文章标题" [ref=e10]: 测试文章：Playwright自动化测试
+      - generic [ref=e11]:
+        - button "B" [ref=e12] [cursor=pointer]
+        - button "I" [ref=e13] [cursor=pointer]
+        - button "H" [ref=e14] [cursor=pointer]
+        - 'button "{ }" [ref=e15] [cursor=pointer]'
+        - button "<>" [ref=e16] [cursor=pointer]
+        - button "\"" [ref=e17] [cursor=pointer]
+        - button "•" [ref=e18] [cursor=pointer]
+        - button "🔗" [ref=e19] [cursor=pointer]
+        - button "🖼" [ref=e20] [cursor=pointer]
+      - textbox "使用 Markdown 编写文章内容..." [active] [ref=e23]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: 分类
+            - combobox [ref=e30]:
+              - option "选择分类"
+              - option "软件"
+              - option "技术" [selected]
+              - option "生活"
+              - option "笔记"
+              - option "其他"
+          - generic [ref=e31]:
+            - generic [ref=e32]: 标签
+            - textbox "多个标签用逗号分隔" [ref=e33]: 测试,自动化
+        - generic [ref=e35]:
+          - generic [ref=e36]: 封面图片URL（可选）
+          - textbox "https://..." [ref=e37]
+        - generic [ref=e39]:
+          - generic [ref=e40]: 摘要（可选，留空则自动截取）
+          - textbox "文章摘要..." [ref=e41]

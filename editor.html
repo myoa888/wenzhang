@@ -149,9 +149,11 @@
       const textarea = document.getElementById('content');
       const cursorPos = textarea.selectionStart;
       const text = textarea.value;
+      const before = text.substring(0, cursorPos);
+      const after = text.substring(cursorPos);
       
       // 插入占位符
-      textarea.value = text.substring(0, cursorPos) + '\n![上传中...](...)\n' + text.substring(cursorPos);
+      textarea.value = before + '\n![上传中...](...)\n' + after;
       textarea.focus();
       
       try {
@@ -168,18 +170,17 @@
         
         if (data.success && data.data.url) {
           // 替换占位符为实际图片
-          const before = text.substring(0, cursorPos);
-          const after = text.substring(cursorPos);
-          textarea.value = before + `\n![${file.name}](${data.data.url})\n` + after;
+          const imgMarkdown = `\n![${file.name}](${data.data.url})\n`;
+          textarea.value = before + imgMarkdown + after;
           updatePreview();
         } else {
           alert(data.error || '上传失败');
-          // 删除占位符
+          // 删除占位符，恢复原内容
           textarea.value = before + after;
         }
       } catch (e) {
         alert('上传失败: ' + e.message);
-        textarea.value = text;
+        textarea.value = before + after;
       }
       
       event.target.value = '';
