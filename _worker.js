@@ -323,7 +323,9 @@ export default {
         if (!article) return error('文章不存在', 404);
         if (article.user_id !== user.user_id) return error('无权修改此文章', 403);
         const { title, content, summary, category_id, cover_image, tags, status } = body;
-        await DB.prepare(`UPDATE articles SET title = COALESCE(?, title), content = COALESCE(?, content), summary = COALESCE(?, summary), category_id = COALESCE(?, category_id), cover_image = COALESCE(?, cover_image), status = COALESCE(?, status), updated_at = datetime('now'), published_at = CASE WHEN ? = 'published' AND published_at IS NULL THEN datetime('now') ELSE published_at END WHERE id = ?`).bind(title, content, summary, category_id, cover_image, status, status, id).run();
+        // Convert undefined to null for SQL binding
+        const safeBind = (v) => v === undefined ? null : v;
+        await DB.prepare(`UPDATE articles SET title = COALESCE(?, title), content = COALESCE(?, content), summary = COALESCE(?, summary), category_id = COALESCE(?, category_id), cover_image = COALESCE(?, cover_image), status = COALESCE(?, status), updated_at = datetime('now'), published_at = CASE WHEN ? = 'published' AND published_at IS NULL THEN datetime('now') ELSE published_at END WHERE id = ?`).bind(safeBind(title), safeBind(content), safeBind(summary), safeBind(category_id), safeBind(cover_image), safeBind(status), safeBind(status), id).run();
         if (tags !== undefined) {
           await DB.prepare('DELETE FROM article_tags WHERE article_id = ?').bind(id).run();
           for (const tagName of tags) {
