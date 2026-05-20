@@ -83,49 +83,37 @@
       padding: 8px;
     }
     .add-form {
-      margin: 16px;
-      padding: 16px;
+      margin: 12px 16px;
+      padding: 12px;
       background: #fff;
       border-radius: 10px;
     }
-    .add-form h3 {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #333;
+    .add-form .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
     .add-form input {
-      width: 100%;
-      padding: 10px 12px;
+      flex: 1;
+      padding: 8px 10px;
       border: 1px solid #ddd;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 14px;
-      margin-bottom: 10px;
       box-sizing: border-box;
     }
     .add-form input:focus {
       outline: none;
       border-color: #667eea;
     }
-    .add-form .btn-row {
-      display: flex;
-      gap: 10px;
-    }
-    .add-form button {
-      flex: 1;
-      padding: 12px;
+    .add-form .btn-submit {
+      padding: 8px 16px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 14px;
       font-weight: 500;
-    }
-    .add-form .btn-submit {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
-    }
-    .add-form .btn-reset {
-      background: #f5f5f5;
-      color: #666;
+      white-space: nowrap;
     }
     .loading, .empty, .error {
       text-align: center;
@@ -174,11 +162,9 @@
 
   <!-- 添加分类表单 -->
   <div class="add-form">
-    <h3>添加新分类</h3>
-    <input type="text" id="categoryName" placeholder="分类名称，如：技术">
-    <div class="btn-row">
+    <div class="input-row">
+      <input type="text" id="categoryName" placeholder="输入分类名称">
       <button class="btn-submit" onclick="addCategory()">添加</button>
-      <button class="btn-reset" onclick="resetForm()">重置</button>
     </div>
   </div>
 
